@@ -1,0 +1,11 @@
+[package]
+name = "Meson-Contracts-Move"
+version = "0.1.0"
+
+[dependencies]
+AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework", rev = "main" }
+AptosToken = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-token", rev = "main" }
+
+[addresses]
+std = "0x1"
+Meson = "0x42"
