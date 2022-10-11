@@ -18,6 +18,9 @@ module Meson::MesonSwap {
     const EEXPIRE_TOO_LATE: u64 = 4;
 
     
+
+    /* ---------------------------- Struct & Constructor ---------------------------- */
+
     // Contains all the related tables (mappings).
     struct StoredContentOfSwap has key {
         _postedSwaps: table::Table<EncodedSwap, PostedSwap>,
@@ -26,7 +29,7 @@ module Meson::MesonSwap {
 
 
 
-    /* ---------------------------- Main Function ---------------------------- */
+    /* ---------------------------- Initialize ---------------------------- */
 
     public entry fun initializeTable(deployer: &signer) {
         let deployerAddress = signer::address_of(deployer);
@@ -36,6 +39,10 @@ module Meson::MesonSwap {
             _cachedToken: table::new<EncodedSwap, Token>(),
         });
     }
+
+
+
+    /* ---------------------------- Main Function ---------------------------- */
 
     // Step 1: postSwap
     public entry fun postSwap(initiator: &signer, encodedSwap: EncodedSwap, poolIndex: u64) acquires StoredContentOfSwap {

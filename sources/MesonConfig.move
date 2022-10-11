@@ -1,6 +1,6 @@
 module Meson::MesonConfig {
-    // See https://github.com/satoshilabs/slips/blob/master/slip-0044.md.
     const CHAIN_ID: u64 = 0x027d;        // Chain ID (SLIP44) of Aptos is "0x027d".
+    // See https://github.com/satoshilabs/slips/blob/master/slip-0044.md.
 
     const ENOT_DEPLOYER: u64 = 0;
     const EALREADY_IN_TOKEN_LIST: u64 = 1;

@@ -1,12 +1,11 @@
-
 module Meson::MesonHelpers {
     /* ---------------------------- References ---------------------------- */
 
-    // We merge the `MesonSwap` file into `MesonHelpers`.
     use std::bcs;
     use aptos_std::aptos_hash;
 
     friend Meson::MesonSwap;
+    friend Meson::MesonPools;
 
     const DEPLOYER: address = @Meson;
     const ENOT_DEPLOYER: u64 = 0;
@@ -37,8 +36,14 @@ module Meson::MesonHelpers {
     }
 
     // `PostedSwap` is in format of `initiator:address|poolIndex:uint40` in solidity.
-    struct PostedSwap has store {
+    struct PostedSwap has store, drop {
         initiator: address,
+        poolIndex: u64,
+    }
+
+    // `LockedSwap` is in format of `until:uint40|poolIndex:uint40` in solidity.
+    struct LockedSwap has store, drop {
+        until: u64,
         poolIndex: u64,
     }
 
@@ -50,6 +55,11 @@ module Meson::MesonHelpers {
     // Create a new `PostedSwap` instance
     public(friend) fun newPostedSwap(initiator: address, poolIndex: u64): PostedSwap {
         PostedSwap { initiator, poolIndex }
+    }
+
+    // Create a new `LockedSwap` instance
+    public(friend) fun newLockedSwap(until: u64, poolIndex: u64,): LockedSwap {
+        LockedSwap { until, poolIndex }
     }
 
 
@@ -88,12 +98,12 @@ module Meson::MesonHelpers {
         aptos_hash::keccak256(serializedContent)
     }
 
-    // public(friend) fun initiatorFromPosted(postingValue: PostedSwap): address {
-    //     postingValue.initiator
-    // }
+    public(friend) fun initiatorFromPosted(postingValue: PostedSwap): address {
+        postingValue.initiator
+    }
 
-    // public(friend) fun poolIndexFromPosted(postingValue: PostedSwap): u64 {
-    //     postingValue.poolIndex
-    // }
+    public(friend) fun poolIndexFromPosted(postingValue: PostedSwap): u64 {
+        postingValue.poolIndex
+    }
 
 }

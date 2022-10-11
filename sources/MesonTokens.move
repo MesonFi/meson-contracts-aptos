@@ -47,6 +47,7 @@ module Meson::MesonTokens {
 
 
     /* ---------------------------- Utils Function ---------------------------- */
+    
     public fun tokenForIndex(tokenIndex: u64): TokenId acquires StoredContentOfToken {
         *vector::borrow(&borrow_global<StoredContentOfToken>(@Meson)._tokenList, tokenIndex)
     }
