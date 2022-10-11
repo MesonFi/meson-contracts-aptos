@@ -9,7 +9,7 @@ module Meson::MesonSwap {
     use Meson::MesonHelpers;
     use Meson::MesonHelpers::{EncodedSwap, PostedSwap};
     use aptos_token::token;
-    use aptos_token::token::{TokenId, Token};
+    use aptos_token::token::{Token};
 
     const DEPLOYER: address = @Meson;
     const ENOT_DEPLOYER: u64 = 0;
@@ -21,25 +21,28 @@ module Meson::MesonSwap {
     // Contains all the related tables (mappings).
     struct StoredContentOfSwap has key {
         _postedSwaps: table::Table<EncodedSwap, PostedSwap>,
+        _cachedToken: table::Table<EncodedSwap, Token>,
     }
 
 
 
     /* ---------------------------- Main Function ---------------------------- */
 
-    public entry fun initializeTable(account: &signer) {
-        let deployer = signer::address_of(account);
-        assert!(deployer == DEPLOYER, ENOT_DEPLOYER);
-
-        if(!exists<StoredContentOfSwap>(deployer)) move_to<StoredContentOfSwap>(account, StoredContentOfSwap {
+    public entry fun initializeTable(deployer: &signer) {
+        let deployerAddress = signer::address_of(deployer);
+        assert!(deployerAddress == DEPLOYER, ENOT_DEPLOYER);
+        if(!exists<StoredContentOfSwap>(deployerAddress)) move_to<StoredContentOfSwap>(deployer, StoredContentOfSwap {
             _postedSwaps: table::new<EncodedSwap, PostedSwap>(),
+            _cachedToken: table::new<EncodedSwap, Token>(),
         });
     }
 
     // Step 1: postSwap
-    public entry fun postSwap(initiator: &signer, encodedSwap: EncodedSwap, lp: address) acquires StoredContentOfSwap {
+    public entry fun postSwap(initiator: &signer, encodedSwap: EncodedSwap, poolIndex: u64) acquires StoredContentOfSwap {
         // Ensure that the `encodedSwap` doesn't exist.
-        let _postedSwaps = &mut borrow_global_mut<StoredContentOfSwap>(DEPLOYER)._postedSwaps;
+        let _storedContentOfSwap = borrow_global_mut<StoredContentOfSwap>(DEPLOYER);
+        let _postedSwaps = &mut _storedContentOfSwap._postedSwaps;
+        let _cachedToken = &mut _storedContentOfSwap._cachedToken;
         assert!(!table::contains(_postedSwaps, encodedSwap), ESWAP_ALREADY_EXISTS);
         
         let inTokenId = MesonHelpers::inTokenIndexFrom(encodedSwap);
@@ -53,11 +56,14 @@ module Meson::MesonSwap {
         let withdrew_token = token::withdraw_token(initiator, tokenId, amount);
 
         // Store the `postedSwap` in contract.
-        let postingValue = MesonHelpers::newPostedSwap(signer::address_of(initiator), lp, withdrew_token);
+        let postingValue = MesonHelpers::newPostedSwap(signer::address_of(initiator), poolIndex);
         table::add(_postedSwaps, encodedSwap, postingValue);
+        table::add(_cachedToken, encodedSwap, withdrew_token);
 
         /* ============================ To be added ============================ */
         // Emit `postedSwap` event!
         /* ===================================================================== */
     }
+
+    
 }

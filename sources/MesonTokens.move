@@ -17,6 +17,7 @@ module Meson::MesonTokens {
 
 
     /* ---------------------------- Main Function ---------------------------- */
+
     // Add new supported token into meson contract.
     public entry fun addSupportToken(
         deployerAccount: &signer,

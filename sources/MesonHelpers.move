@@ -3,7 +3,8 @@ module Meson::MesonHelpers {
     /* ---------------------------- References ---------------------------- */
 
     // We merge the `MesonSwap` file into `MesonHelpers`.
-    use aptos_token::token::{Token};
+    use std::bcs;
+    use aptos_std::aptos_hash;
 
     friend Meson::MesonSwap;
 
@@ -15,7 +16,7 @@ module Meson::MesonHelpers {
 
     /* ---------------------------- Struct & Constructor ---------------------------- */
 
-    // `encodedSwap` is in format of `amount:uint48|salt:uint80|fee:uint40|expireTs:uint40|outChain:uint16|outToken:uint8|inChain:uint16|inToken:uint8` in solidity.
+    // `EncodedSwap` is in format of `amount:uint48|salt:uint80|fee:uint40|expireTs:uint40|outChain:uint16|outToken:uint8|inChain:uint16|inToken:uint8` in solidity.
     // However, it's not convenient in Move to obtain a slice in bytes and convert it to uint. So we use a struct `EncodedSwap` to store the transaction information.
     struct EncodedSwap has copy, drop {
         amount: u64,
@@ -26,23 +27,29 @@ module Meson::MesonHelpers {
         outToken: u64,      // `u8` cannot be the index of a vector.
         inChain: u64,
         inToken: u64,
+        lockHash: vector<u8>,
     }
 
-    // We discard `poolIndex` in solidity, because we don't need a `pool` in move language. Instead, we stored the Token Entity in the PostedSwap, together with the initiator's address and liquidity provider's address.
+    // This struct is only for the function `getSwapHash`.
+    struct EncodedSwapAndInitiator has drop {
+        encodedSwap: EncodedSwap,
+        initiator: address,
+    }
+
+    // `PostedSwap` is in format of `initiator:address|poolIndex:uint40` in solidity.
     struct PostedSwap has store {
         initiator: address,
-        lp: address,
-        tokenEntity: Token,
+        poolIndex: u64,
     }
 
     // Create a new `EncodedSwap` instance
-    public(friend) fun newEncodedSwap(amount: u64, salt: vector<u8>, fee: u64, expireTs: u64, outChain: u64, outToken: u64, inChain: u64, inToken: u64): EncodedSwap {
-        EncodedSwap { amount, salt, fee, expireTs, outChain, outToken, inChain, inToken }
+    public(friend) fun newEncodedSwap(amount: u64, salt: vector<u8>, fee: u64, expireTs: u64, outChain: u64, outToken: u64, inChain: u64, inToken: u64, lockHash: vector<u8>): EncodedSwap {
+        EncodedSwap { amount, salt, fee, expireTs, outChain, outToken, inChain, inToken, lockHash }
     }
 
     // Create a new `PostedSwap` instance
-    public(friend) fun newPostedSwap(initiator: address, lp: address, tokenEntity: Token): PostedSwap {
-        PostedSwap { initiator, lp, tokenEntity }
+    public(friend) fun newPostedSwap(initiator: address, poolIndex: u64): PostedSwap {
+        PostedSwap { initiator, poolIndex }
     }
 
 
@@ -68,6 +75,17 @@ module Meson::MesonHelpers {
 
     public(friend) fun outTokenIndexFrom(encodedSwap: EncodedSwap): u64 {
         encodedSwap.outToken
+    }
+
+    public(friend) fun hashValueFrom(encodedSwap: EncodedSwap): vector<u8> {
+        encodedSwap.lockHash
+    }
+
+    // The swap ID in explorer
+    public(friend) fun getSwapId(encodedSwap: EncodedSwap, initiator: address): vector<u8> {
+        let encodeContent = EncodedSwapAndInitiator { encodedSwap, initiator };
+        let serializedContent = bcs::to_bytes(&encodeContent);
+        aptos_hash::keccak256(serializedContent)
     }
 
     // public(friend) fun initiatorFromPosted(postingValue: PostedSwap): address {

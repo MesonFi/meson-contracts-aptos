@@ -24,4 +24,8 @@ module Meson::MesonConfig {
         LOCK_TIME_PERIOD
     }
 
+    public fun get_CHAIN_ID(): u64 {
+        CHAIN_ID
+    }
+
 }
