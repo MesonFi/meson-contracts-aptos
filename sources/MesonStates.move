@@ -12,20 +12,19 @@ module Meson::MesonStates {
 
     /* ---------------------------- Struct & Constructor ---------------------------- */
 
-    struct TokenIdAndPoolId has copy, drop {
+    // We discard `poolIndex` because the mapping between lp address and pool index cannot save gas fee.
+    struct TokenIdAndLP has copy, drop {
         tokenId: u64,
-        poolId: u64,
+        lp: address,
     }
 
     // Contains all the related tables (mappings).
     struct StoredContentOfStates has key {
-        poolOfAuthorizedAddr: table::Table<address, u64>,
-        ownerOfPool: table::Table<u64, address>,
-        tokenEntityPool: table::Table<TokenIdAndPoolId, Token>,
+        tokenEntityPool: table::Table<TokenIdAndLP, Token>,
     }
 
-    public(friend) fun newTokenIdAndPoolId(tokenId: u64, poolId: u64): TokenIdAndPoolId {
-        TokenIdAndPoolId { tokenId, poolId }
+    public(friend) fun newTokenIdAndLP(tokenId: u64, lp: address): TokenIdAndLP {
+        TokenIdAndLP { tokenId, lp }
     }
 
     
@@ -36,9 +35,7 @@ module Meson::MesonStates {
         let deployerAddress = signer::address_of(deployer);
         assert!(deployerAddress == DEPLOYER, ENOT_DEPLOYER);
         if(!exists<StoredContentOfStates>(deployerAddress)) move_to<StoredContentOfStates>(deployer, StoredContentOfStates {
-            poolOfAuthorizedAddr: table::new<address, u64>(),
-            ownerOfPool: table::new<u64, address>(),
-            tokenEntityPool: table::new<TokenIdAndPoolId, Token>(),
+            tokenEntityPool: table::new<TokenIdAndLP, Token>(),
         });
     }
 
@@ -46,11 +43,9 @@ module Meson::MesonStates {
 
     /* ---------------------------- Utils Function ---------------------------- */
 
-    public fun poolTokenBalance(tokenId: u64, lp: address): u64 acquires StoredContentOfStates {
+    public fun LPTokenBalance(tokenId: u64, lp: address): u64 acquires StoredContentOfStates {
         let storedContentOfStates = borrow_global<StoredContentOfStates>(DEPLOYER);
-        let poolId = *table::borrow(&storedContentOfStates.poolOfAuthorizedAddr, lp);
-        let tokenIdAndPoolId = TokenIdAndPoolId { tokenId, poolId };
-        let tokenEntityRef = table::borrow(&storedContentOfStates.tokenEntityPool, tokenIdAndPoolId);
+        let tokenEntityRef = table::borrow(&storedContentOfStates.tokenEntityPool, TokenIdAndLP { tokenId, lp });
         get_token_amount(tokenEntityRef)
     }
 
