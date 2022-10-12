@@ -7,6 +7,12 @@ module Meson::MesonConfig {
     const ESWAP_ALREADY_EXISTS: u64 = 2;
     const EEXPIRE_TOO_EARLY: u64 = 3;
     const EEXPIRE_TOO_LATE: u64 = 4;
+    const ETOKEN_TYPE_ERROR: u64 = 5;
+    const EEXIPRE_TS_IS_SOON: u64 = 6;
+    const ELP_POOL_NOT_EXISTS: u64 = 7;
+    const EHASH_VALUE_NOT_MATCH: u64 = 8;
+    const ESWAP_NOT_EXISTS: u64 = 9;
+    const EALREADY_EXPIRED: u64 = 10;
 
     const MIN_BOND_TIME_PERIOD: u64 = 3600;     // 1 hour
     const MAX_BOND_TIME_PERIOD: u64 = 7200;     // 2 hours

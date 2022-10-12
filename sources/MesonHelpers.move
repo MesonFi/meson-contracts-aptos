@@ -36,15 +36,15 @@ module Meson::MesonHelpers {
     }
 
     // `PostedSwap` is in format of `initiator:address|poolIndex:uint40` in solidity.
-    struct PostedSwap has store, drop {
+    struct PostedSwap has store {
         initiator: address,
-        poolIndex: u64,
+        recipient: address,
     }
 
     // `LockedSwap` is in format of `until:uint40|poolIndex:uint40` in solidity.
-    struct LockedSwap has store, drop {
+    struct LockedSwap has store {
         until: u64,
-        poolIndex: u64,
+        recipient: address,
     }
 
     // Create a new `EncodedSwap` instance
@@ -53,13 +53,13 @@ module Meson::MesonHelpers {
     }
 
     // Create a new `PostedSwap` instance
-    public(friend) fun newPostedSwap(initiator: address, poolIndex: u64): PostedSwap {
-        PostedSwap { initiator, poolIndex }
+    public(friend) fun newPostedSwap(initiator: address, recipient: address): PostedSwap {
+        PostedSwap { initiator, recipient }
     }
 
     // Create a new `LockedSwap` instance
-    public(friend) fun newLockedSwap(until: u64, poolIndex: u64,): LockedSwap {
-        LockedSwap { until, poolIndex }
+    public(friend) fun newLockedSwap(until: u64, recipient: address): LockedSwap {
+        LockedSwap { until, recipient }
     }
 
 
@@ -69,6 +69,13 @@ module Meson::MesonHelpers {
 
 
     /* ---------------------------- Utils Function ---------------------------- */
+
+    // The swap ID in explorer
+    public(friend) fun getSwapId(encodedSwap: EncodedSwap, initiator: address): vector<u8> {
+        let encodeContent = EncodedSwapAndInitiator { encodedSwap, initiator };
+        let serializedContent = bcs::to_bytes(&encodeContent);
+        aptos_hash::keccak256(serializedContent)
+    }
 
     // Functions to obtain values from EncodedSwap
     public(friend) fun amountFrom(encodedSwap: EncodedSwap): u64 {
@@ -91,19 +98,14 @@ module Meson::MesonHelpers {
         encodedSwap.lockHash
     }
 
-    // The swap ID in explorer
-    public(friend) fun getSwapId(encodedSwap: EncodedSwap, initiator: address): vector<u8> {
-        let encodeContent = EncodedSwapAndInitiator { encodedSwap, initiator };
-        let serializedContent = bcs::to_bytes(&encodeContent);
-        aptos_hash::keccak256(serializedContent)
+    public(friend) fun destructPosted(postingValue: PostedSwap): (address, address) {
+        let PostedSwap { initiator, recipient } = postingValue;
+        (initiator, recipient)
     }
 
-    public(friend) fun initiatorFromPosted(postingValue: PostedSwap): address {
-        postingValue.initiator
-    }
-
-    public(friend) fun poolIndexFromPosted(postingValue: PostedSwap): u64 {
-        postingValue.poolIndex
+    public(friend) fun destructLocked(lockedSwap: LockedSwap): (u64, address) {
+        let LockedSwap { until, recipient } = lockedSwap;
+        (until, recipient)
     }
 
 }

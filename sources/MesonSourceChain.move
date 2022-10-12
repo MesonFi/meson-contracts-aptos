@@ -45,13 +45,14 @@ module Meson::MesonSwap {
     /* ---------------------------- Main Function ---------------------------- */
 
     // Step 1: postSwap
-    public entry fun postSwap(initiator: &signer, encodedSwap: EncodedSwap, poolIndex: u64) acquires StoredContentOfSwap {
+    public entry fun postSwap(initiatorAccount: &signer, encodedSwap: EncodedSwap, recipient: address) acquires StoredContentOfSwap {
         // Ensure that the `encodedSwap` doesn't exist.
         let _storedContentOfSwap = borrow_global_mut<StoredContentOfSwap>(DEPLOYER);
         let _postedSwaps = &mut _storedContentOfSwap._postedSwaps;
         let _cachedToken = &mut _storedContentOfSwap._cachedToken;
         assert!(!table::contains(_postedSwaps, encodedSwap), ESWAP_ALREADY_EXISTS);
         
+        // Assertion about time-lock.
         let inTokenId = MesonHelpers::inTokenIndexFrom(encodedSwap);
         let amount = MesonHelpers::amountFrom(encodedSwap);
         let delta = MesonHelpers::expireTsFrom(encodedSwap) - timestamp::now_seconds();
@@ -60,12 +61,12 @@ module Meson::MesonSwap {
 
         // Withdraw token entity from the initiator.
         let tokenId = MesonTokens::tokenForIndex(inTokenId);
-        let withdrew_token = token::withdraw_token(initiator, tokenId, amount);
+        let withdrewToken = token::withdraw_token(initiatorAccount, tokenId, amount);
 
-        // Store the `postedSwap` in contract.
-        let postingValue = MesonHelpers::newPostedSwap(signer::address_of(initiator), poolIndex);
+        // Store the `postingValue` in contract.
+        let postingValue = MesonHelpers::newPostedSwap(signer::address_of(initiatorAccount), recipient);
         table::add(_postedSwaps, encodedSwap, postingValue);
-        table::add(_cachedToken, encodedSwap, withdrew_token);
+        table::add(_cachedToken, encodedSwap, withdrewToken);
 
         /* ============================ To be added ============================ */
         // Emit `postedSwap` event!
