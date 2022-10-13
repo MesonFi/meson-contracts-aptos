@@ -13,6 +13,7 @@ module Meson::MesonConfig {
     const EHASH_VALUE_NOT_MATCH: u64 = 8;
     const ESWAP_NOT_EXISTS: u64 = 9;
     const EALREADY_EXPIRED: u64 = 10;
+    const ERECIPENT_NOT_MATCH: u64 = 11;
 
     const MIN_BOND_TIME_PERIOD: u64 = 3600;     // 1 hour
     const MAX_BOND_TIME_PERIOD: u64 = 7200;     // 2 hours

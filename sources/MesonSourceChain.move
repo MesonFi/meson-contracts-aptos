@@ -4,6 +4,7 @@ module Meson::MesonSwap {
     use std::table;
     use std::signer;
     use std::timestamp;
+    use std::aptos_hash;
     use Meson::MesonConfig;
     use Meson::MesonTokens;
     use Meson::MesonHelpers;
@@ -16,6 +17,10 @@ module Meson::MesonSwap {
     const ESWAP_ALREADY_EXISTS: u64 = 2;
     const EEXPIRE_TOO_EARLY: u64 = 3;
     const EEXPIRE_TOO_LATE: u64 = 4;
+    const EHASH_VALUE_NOT_MATCH: u64 = 8;
+    const ESWAP_NOT_EXISTS: u64 = 9;
+    const EALREADY_EXPIRED: u64 = 10;
+    const ERECIPENT_NOT_MATCH: u64 = 11;
 
     
 
@@ -68,6 +73,39 @@ module Meson::MesonSwap {
         table::add(_postedSwaps, encodedSwap, postingValue);
         table::add(_cachedToken, encodedSwap, withdrewToken);
 
+        /* ============================ To be added ============================ */
+        // Emit `postedSwap` event!
+        /* ===================================================================== */
+    }
+
+
+    // Step 4. executeSwap
+    public entry fun executeSwap(recipientAccount: &signer, encodedSwap: EncodedSwap, keyString: vector<u8>) acquires StoredContentOfSwap {
+        // Ensure that the transaction exists.
+        let _storedContentOfSwap = borrow_global_mut<StoredContentOfSwap>(DEPLOYER);
+        let _postedSwaps = &mut _storedContentOfSwap._postedSwaps;
+        let _cachedToken = &mut _storedContentOfSwap._cachedToken;
+        assert!(table::contains(_postedSwaps, encodedSwap), ESWAP_NOT_EXISTS);
+
+        // Ensure that the recipient is correct.
+        let postingValue = table::remove(_postedSwaps, encodedSwap);
+        let (initiator, expectedRecipient) = MesonHelpers::destructPosted(postingValue);
+        let recipient = signer::address_of(recipientAccount);
+        assert!(recipient==expectedRecipient, ERECIPENT_NOT_MATCH);
+
+        // Ensure that the `keyString` works.
+        let calculateHash = aptos_hash::keccak256(keyString);
+        let expectedHash = MesonHelpers::hashValueFrom(encodedSwap);
+        assert!(calculateHash == expectedHash, EHASH_VALUE_NOT_MATCH);
+
+        // Assertion about time-lock.
+        let expireTs = MesonHelpers::expireTsFrom(encodedSwap);
+        assert!(expireTs < timestamp::now_seconds() + MesonConfig::get_MIN_BOND_TIME_PERIOD(), EALREADY_EXPIRED);
+
+        // Release the token.
+        let fetchedToken = table::remove(_cachedToken, encodedSwap);
+        token::direct_deposit_with_opt_in(initiator, fetchedToken);
+        
         /* ============================ To be added ============================ */
         // Emit `postedSwap` event!
         /* ===================================================================== */

@@ -76,9 +76,9 @@ module Meson::MesonPools {
     // Step 2: Lock
     public entry fun lock(recipientAccount: &signer, encodedSwap: EncodedSwap, initiator: address) acquires StoredContentOfPools {
         // Ensure that the `lockedSwap` doesn't exist.
-        let _storedContentOfSwap = borrow_global_mut<StoredContentOfPools>(DEPLOYER);
-        let _lockedSwaps = &mut _storedContentOfSwap._lockedSwaps;
-        let _cachedToken = &mut _storedContentOfSwap._cachedToken;
+        let _storedContentOfPools = borrow_global_mut<StoredContentOfPools>(DEPLOYER);
+        let _lockedSwaps = &mut _storedContentOfPools._lockedSwaps;
+        let _cachedToken = &mut _storedContentOfPools._cachedToken;
         let swapId = MesonHelpers::getSwapId(encodedSwap, initiator);
         assert!(!table::contains(_lockedSwaps, swapId), ESWAP_ALREADY_EXISTS);
 
@@ -108,9 +108,9 @@ module Meson::MesonPools {
     // The priciple of Hash-Time Locked Contract: `keyString` is the key of `lockHash`!
     public entry fun release(initiatorAccount: &signer, encodedSwap: EncodedSwap, keyString: vector<u8>) acquires StoredContentOfPools {
         // Ensure that the transaction exists.
-        let _storedContentOfSwap = borrow_global_mut<StoredContentOfPools>(DEPLOYER);
-        let _lockedSwaps = &mut _storedContentOfSwap._lockedSwaps;
-        let _cachedToken = &mut _storedContentOfSwap._cachedToken;
+        let _storedContentOfPools = borrow_global_mut<StoredContentOfPools>(DEPLOYER);
+        let _lockedSwaps = &mut _storedContentOfPools._lockedSwaps;
+        let _cachedToken = &mut _storedContentOfPools._cachedToken;
         let initiator = signer::address_of(initiatorAccount);
         let swapId = MesonHelpers::getSwapId(encodedSwap, initiator);
         assert!(table::contains(_lockedSwaps, swapId), ESWAP_NOT_EXISTS);
