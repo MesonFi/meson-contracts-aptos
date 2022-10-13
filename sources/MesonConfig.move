@@ -3,11 +3,11 @@ module Meson::MesonConfig {
     // See https://github.com/satoshilabs/slips/blob/master/slip-0044.md.
 
     const ENOT_DEPLOYER: u64 = 0;
-    const EALREADY_IN_TOKEN_LIST: u64 = 1;
+    const EALREADY_IN_COIN_LIST: u64 = 1;
     const ESWAP_ALREADY_EXISTS: u64 = 2;
     const EEXPIRE_TOO_EARLY: u64 = 3;
     const EEXPIRE_TOO_LATE: u64 = 4;
-    const ETOKEN_TYPE_ERROR: u64 = 5;
+    const ECOIN_TYPE_ERROR: u64 = 5;
     const EEXIPRE_TS_IS_SOON: u64 = 6;
     const ELP_POOL_NOT_EXISTS: u64 = 7;
     const EHASH_VALUE_NOT_MATCH: u64 = 8;
