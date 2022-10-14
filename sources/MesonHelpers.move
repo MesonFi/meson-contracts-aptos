@@ -19,13 +19,9 @@ module Meson::MesonHelpers {
     // However, it's not convenient in Move to obtain a slice in bytes and convert it to uint. So we use a struct `EncodedSwap` to store the transaction information.
     struct EncodedSwap has copy, drop {
         amount: u64,
-        salt: vector<u8>,
-        fee: u64,
         expireTs: u64,
         outChain: u64,
-        outCoinId: u64,      // `outCoinId` here cannot be mapped to the Coin Type.
         inChain: u64,
-        inCoinId: u64,
         lockHash: vector<u8>,
     }
 
@@ -48,8 +44,8 @@ module Meson::MesonHelpers {
     }
 
     // Create a new `EncodedSwap` instance
-    public(friend) fun newEncodedSwap(amount: u64, salt: vector<u8>, fee: u64, expireTs: u64, outChain: u64, outCoinId: u64, inChain: u64, inCoinId: u64, lockHash: vector<u8>): EncodedSwap {
-        EncodedSwap { amount, salt, fee, expireTs, outChain, outCoinId, inChain, inCoinId, lockHash }
+    public(friend) fun newEncodedSwap(amount: u64, expireTs: u64, outChain: u64, inChain: u64, lockHash: vector<u8>): EncodedSwap {
+        EncodedSwap { amount, expireTs, outChain, inChain, lockHash }
     }
 
     // Create a new `PostedSwap` instance
@@ -80,14 +76,6 @@ module Meson::MesonHelpers {
 
     public(friend) fun expireTsFrom(encodedSwap: EncodedSwap): u64 {
         encodedSwap.expireTs
-    }
-
-    public(friend) fun inCoinIndexFrom(encodedSwap: EncodedSwap): u64 {
-        encodedSwap.inCoinId
-    }
-
-    public(friend) fun outCoinIndexFrom(encodedSwap: EncodedSwap): u64 {
-        encodedSwap.outCoinId
     }
 
     public(friend) fun hashValueFrom(encodedSwap: EncodedSwap): vector<u8> {

@@ -71,8 +71,9 @@ module Meson::MesonPools {
 
 
     // Step 2: Lock
-    public entry fun lock<CoinType>(recipientAccount: &signer, encodedSwap: EncodedSwap, initiator: address) acquires StoredContentOfPools {
+    public entry fun lock<CoinType>(recipientAccount: &signer, initiator: address, amount: u64, expireTs: u64, outChain: u64, inChain: u64, lockHash: vector<u8>) acquires StoredContentOfPools {
         // Ensure that the `lockedSwap` doesn't exist.
+        let encodedSwap = MesonHelpers::newEncodedSwap(amount, expireTs, outChain, inChain, lockHash);  // To fixed!!
         let _storedContentOfPools = borrow_global_mut<StoredContentOfPools<CoinType>>(DEPLOYER);
         let _lockedSwaps = &mut _storedContentOfPools._lockedSwaps;
         let _cachedCoin = &mut _storedContentOfPools._cachedCoin;
@@ -102,8 +103,9 @@ module Meson::MesonPools {
 
     // Step 3: Release
     // The priciple of Hash-Time Locked Contract: `keyString` is the key of `lockHash`!
-    public entry fun release<CoinType>(initiatorAccount: &signer, encodedSwap: EncodedSwap, keyString: vector<u8>) acquires StoredContentOfPools {
+    public entry fun release<CoinType>(initiatorAccount: &signer, keyString: vector<u8>, amount: u64, expireTs: u64, outChain: u64, inChain: u64, lockHash: vector<u8>) acquires StoredContentOfPools {
         // Ensure that the transaction exists.
+        let encodedSwap = MesonHelpers::newEncodedSwap(amount, expireTs, outChain, inChain, lockHash);  // To fixed!!
         let _storedContentOfPools = borrow_global_mut<StoredContentOfPools<CoinType>>(DEPLOYER);
         let _lockedSwaps = &mut _storedContentOfPools._lockedSwaps;
         let _cachedCoin = &mut _storedContentOfPools._cachedCoin;

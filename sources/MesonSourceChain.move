@@ -51,8 +51,9 @@ module Meson::MesonSwap {
     /* ---------------------------- Main Function ---------------------------- */
 
     // Step 1: postSwap
-    public entry fun postSwap<CoinType>(initiatorAccount: &signer, encodedSwap: EncodedSwap, recipient: address) acquires StoredContentOfSwap {
+    public entry fun postSwap<CoinType>(initiatorAccount: &signer, recipient: address, amount: u64, expireTs: u64, outChain: u64, inChain: u64, lockHash: vector<u8>) acquires StoredContentOfSwap {
         // Ensure that the `encodedSwap` doesn't exist.
+        let encodedSwap = MesonHelpers::newEncodedSwap(amount, expireTs, outChain, inChain, lockHash);  // To fixed!!
         let _storedContentOfSwap = borrow_global_mut<StoredContentOfSwap<CoinType>>(DEPLOYER);
         let _postedSwaps = &mut _storedContentOfSwap._postedSwaps;
         let _cachedCoin = &mut _storedContentOfSwap._cachedCoin;
@@ -79,8 +80,9 @@ module Meson::MesonSwap {
 
 
     // Step 4. executeSwap
-    public entry fun executeSwap<CoinType>(recipientAccount: &signer, encodedSwap: EncodedSwap, keyString: vector<u8>) acquires StoredContentOfSwap {
+    public entry fun executeSwap<CoinType>(recipientAccount: &signer, keyString: vector<u8>, amount: u64, expireTs: u64, outChain: u64, inChain: u64, lockHash: vector<u8>) acquires StoredContentOfSwap {
         // Ensure that the transaction exists.
+        let encodedSwap = MesonHelpers::newEncodedSwap(amount, expireTs, outChain, inChain, lockHash);  // To fixed!!
         let _storedContentOfSwap = borrow_global_mut<StoredContentOfSwap<CoinType>>(DEPLOYER);
         let _postedSwaps = &mut _storedContentOfSwap._postedSwaps;
         let _cachedCoin = &mut _storedContentOfSwap._cachedCoin;

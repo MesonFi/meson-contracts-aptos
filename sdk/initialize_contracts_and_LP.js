@@ -25,9 +25,6 @@ main = async () => {
         JSON.parse(readFileSync("wallet_for_test/wallet_1.json", "utf-8"))
     )
 
-    const userWallet = AptosAccount.fromAptosAccountObject(
-        JSON.parse(readFileSync("wallet_for_test/wallet_2.json", "utf-8"))
-    )
     const lpWallet = AptosAccount.fromAptosAccountObject(
         JSON.parse(readFileSync("wallet_for_test/wallet_3.json", "utf-8"))
     )
