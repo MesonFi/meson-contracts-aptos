@@ -9,59 +9,59 @@ const USDT_Struct = "0xaaefd8848cb707617bf82894e2d7af6214b3f3a8e3fc32e91bc026f05
 
 
 async function executeTransaction(client, wallet, function_name, type_arguments, arguments) {
-    payload = {
-        function: function_name, type_arguments: type_arguments, arguments: arguments
-    }
-    const rawTxn = await client.generateTransaction(wallet.address(), payload);
-    const bcsTxn = await client.signTransaction(wallet, rawTxn);
-    const pendingTxn = await client.submitTransaction(bcsTxn);
-    await client.waitForTransaction(pendingTxn.hash, { checkSuccess: true });
+  payload = {
+    function: function_name, type_arguments: type_arguments, arguments: arguments
+  }
+  const rawTxn = await client.generateTransaction(wallet.address(), payload);
+  const bcsTxn = await client.signTransaction(wallet, rawTxn);
+  const pendingTxn = await client.submitTransaction(bcsTxn);
+  await client.waitForTransaction(pendingTxn.hash, { checkSuccess: true });
 }
 
 
 main = async () => {
-    const mesonWallet = AptosAccount.fromAptosAccountObject(
-        JSON.parse(readFileSync("wallet_for_test/wallet_1.json", "utf-8"))
-    )
-    const Meson_Address = mesonWallet.address()
+  const mesonWallet = AptosAccount.fromAptosAccountObject(
+    JSON.parse(readFileSync("wallet_for_test/wallet_1.json", "utf-8"))
+  )
+  const Meson_Address = mesonWallet.address()
 
-    const lpWallet = AptosAccount.fromAptosAccountObject(
-        JSON.parse(readFileSync("wallet_for_test/wallet_3.json", "utf-8"))
-    )
+  const lpWallet = AptosAccount.fromAptosAccountObject(
+    JSON.parse(readFileSync("wallet_for_test/wallet_3.json", "utf-8"))
+  )
 
-    const client = new AptosClient(NODE_URL)
-    const coinClient = new CoinClient(client)
+  const client = new AptosClient(NODE_URL)
+  const coinClient = new CoinClient(client)
 
-    let balance = await coinClient.checkBalance(mesonWallet)
-    console.log(`Balance of mesonWallet: ${balance}`)
+  let balance = await coinClient.checkBalance(mesonWallet)
+  console.log(`Balance of mesonWallet: ${balance}`)
 
 
-    // `Initializing` process only execute once.
+  // `Initializing` process only execute once.
 
-    console.log('=================== Initializing Contract ===================')
-    for (var struct_name of [USDT_Struct, USDC_Struct]) {
-        for (var module_name of ['MesonPools', 'MesonSwap', 'MesonStates']) {
-            await executeTransaction(
-                client, mesonWallet,
-                `${Meson_Address}::${module_name}::initializeTable`, [struct_name], []
-            )
-            console.log(`\t${module_name}<${struct_name}> initialized!`)
-        }
+  console.log('=================== Initializing Contract ===================')
+  for (var struct_name of [USDT_Struct, USDC_Struct]) {
+    for (var module_name of ['MesonPools', 'MesonSwap', 'MesonStates']) {
+      await executeTransaction(
+        client, mesonWallet,
+        `${Meson_Address}::${module_name}::initializeTable`, [struct_name], []
+      )
+      console.log(`\t${module_name}<${struct_name}> initialized!`)
     }
+  }
 
 
-    // For liquidity provider
+  // For liquidity provider
 
-    console.log('=================== Initializing liquidity provider ===================')
-    const deposit_amount = 500
-    for (var struct_name of [USDT_Struct, USDC_Struct]) {
-        await executeTransaction(
-            client, lpWallet,
-            `${Meson_Address}::MesonPools::depositAndRegister`, [struct_name], [deposit_amount] // (Just the first time)
-            // `${Meson_Address}::MesonPools::deposit`, [struct_name], [deposit_amount]
-        )
-        console.log(`Deposit ${deposit_amount} USDT(USDC) success!`)
-    }
+  console.log('=================== Initializing liquidity provider ===================')
+  const deposit_amount = 500
+  for (var struct_name of [USDT_Struct, USDC_Struct]) {
+    await executeTransaction(
+      client, lpWallet,
+      `${Meson_Address}::MesonPools::depositAndRegister`, [struct_name], [deposit_amount] // (Just the first time)
+      // `${Meson_Address}::MesonPools::deposit`, [struct_name], [deposit_amount]
+    )
+    console.log(`Deposit ${deposit_amount} USDT(USDC) success!`)
+  }
 
 }
 
