@@ -17,6 +17,7 @@ async function executeTransaction(client, wallet, function_name, type_arguments,
     const rawTxn = await client.generateTransaction(wallet.address(), payload);
     const bcsTxn = await client.signTransaction(wallet, rawTxn);
     const pendingTxn = await client.submitTransaction(bcsTxn);
+    console.log(pendingTxn.hash)
     await client.waitForTransaction(pendingTxn.hash, { checkSuccess: true });
 }
 
