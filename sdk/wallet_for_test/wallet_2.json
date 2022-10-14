@@ -1,5 +1,5 @@
 {
-    "address": "0x01015ace920c716794445979be68d402d28b2805b7beaae935d7fe369fa7cfa0",
-    "publicKeyHex": "0x0abb553c3029f2174a1a604296fa5f8cf0c1fe7a5ec63d105f40d82515ec0f04",
-    "privateKeyHex": "0x83ef8ada16df9dc91efa2a3dc46a5d9583d34c59af4f9260993734cd168cade1"
+  "address": "0x01015ace920c716794445979be68d402d28b2805b7beaae935d7fe369fa7cfa0",
+  "publicKeyHex": "0x0abb553c3029f2174a1a604296fa5f8cf0c1fe7a5ec63d105f40d82515ec0f04",
+  "privateKeyHex": "0x83ef8ada16df9dc91efa2a3dc46a5d9583d34c59af4f9260993734cd168cade1"
 }
