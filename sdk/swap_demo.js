@@ -1,5 +1,6 @@
-const { AptosClient, AptosAccount, CoinClient, TokenClient, FaucetClient } = require("aptos");
 const { readFileSync } = require("fs");
+const { keccak256 } = require("js-sha3");
+const { AptosClient, AptosAccount, CoinClient, FaucetClient, BCS } = require("aptos");
 
 const NODE_URL = "https://fullnode.devnet.aptoslabs.com";
 const FAUCET_URL = "https://faucet.devnet.aptoslabs.com";
@@ -21,21 +22,70 @@ async function executeTransaction(client, wallet, function_name, type_arguments,
 
 
 main = async () => {
+    const mesonWallet = AptosAccount.fromAptosAccountObject(
+        JSON.parse(readFileSync("wallet_for_test/wallet_1.json", "utf-8"))
+    )
+    const Meson_Address = mesonWallet.address()
+
     const userWallet = AptosAccount.fromAptosAccountObject(
         JSON.parse(readFileSync("wallet_for_test/wallet_2.json", "utf-8"))
     )
-
     const lpWallet = AptosAccount.fromAptosAccountObject(
         JSON.parse(readFileSync("wallet_for_test/wallet_3.json", "utf-8"))
     )
 
     const client = new AptosClient(NODE_URL)
     const coinClient = new CoinClient(client);
-    const faucetClient = new FaucetClient(NODE_URL, FAUCET_URL)
-    // await faucetClient.fundAccount(lpWallet.address(), 200000)
 
     console.log(`Balance of user ${userWallet.address()}: ${await coinClient.checkBalance(userWallet)}`)
     console.log(`Balance of LP ${lpWallet.address()}: ${await coinClient.checkBalance(lpWallet)}`)
 
 
+    // PostSwap
+
+    console.log('=================== Starting the swap ===================')
+    let swapNum = 20
+    const timeExpired = parseInt(Date.now() / 1000 + 7100)
+    const keyString = "phil"
+
+    await executeTransaction(
+        client, userWallet,      // Step 1. (On source chain (In-chain))
+        `${Meson_Address}::MesonSwap::postSwap`, [USDC_Struct], [
+            lpWallet.address(), swapNum, timeExpired, 0, 0, 
+            BCS.bcsSerializeBytes(keccak256.digest(keyString)).slice(1)
+        ]
+    )
+    console.log(`User postSwap finished! Deposit ${swapNum} USDC.`)
+
+
+    await executeTransaction(
+        client, lpWallet,        // Step 2. (On target chain (Out-chain))
+        `${Meson_Address}::MesonPools::lock`, [USDT_Struct], [
+            userWallet.address(), swapNum, timeExpired, 0, 0, 
+            BCS.bcsSerializeBytes(keccak256.digest(keyString)).slice(1)
+        ]
+    )
+    console.log(`LP lock finished! Deposit ${swapNum} USDT.`)
+
+
+    await executeTransaction(
+        client, userWallet,        // Step 3. (On target chain (Out-chain))
+        `${Meson_Address}::MesonPools::release`, [USDT_Struct], [
+            BCS.bcsSerializeStr(keyString).slice(1), swapNum, timeExpired, 0, 0, 
+            BCS.bcsSerializeBytes(keccak256.digest(keyString)).slice(1)
+        ]
+    )
+    console.log(`User release finished! Release ${swapNum} USDT.`)
+
+
+    await executeTransaction(
+        client, lpWallet,        // Step 4. (On source chain (In-chain))
+        `${Meson_Address}::MesonSwap::executeSwap`, [USDC_Struct], [
+            BCS.bcsSerializeStr(keyString).slice(1), swapNum, timeExpired, 0, 0, 
+            BCS.bcsSerializeBytes(keccak256.digest(keyString)).slice(1)
+        ]
+    )
+    console.log(`LP release finished! Release ${swapNum} USDC.`)
 }
+
+main()

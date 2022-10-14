@@ -105,7 +105,7 @@ module Meson::MesonSwap {
 
         // Release the coin.
         let fetchedCoin = table::remove(_cachedCoin, encodedSwap);
-        coin::deposit<CoinType>(initiator, fetchedCoin);
+        coin::deposit<CoinType>(initiator, fetchedCoin);        // To fixed!
         
         /* ============================ To be added ============================ */
         // Emit `postedSwap` event!

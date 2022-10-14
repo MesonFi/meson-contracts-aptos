@@ -41,13 +41,13 @@ module Meson::MesonStates {
 
     /* ---------------------------- Utils Function ---------------------------- */
 
-    public fun lpCoinBalance<CoinType>(lp: address): u64 acquires StoredContentOfStates {
+    public entry fun lpCoinBalance<CoinType>(lp: address): u64 acquires StoredContentOfStates {
         let storedContentOfStates = borrow_global<StoredContentOfStates<CoinType>>(DEPLOYER);
         let coinEntityRef = table::borrow(&storedContentOfStates.coinEntityPool, lp);
         coin::value<CoinType>(coinEntityRef)
     }
 
-    public fun lpCoinExists<CoinType>(lp: address): bool acquires StoredContentOfStates {
+    public entry fun lpCoinExists<CoinType>(lp: address): bool acquires StoredContentOfStates {
         let storedContentOfStates = borrow_global<StoredContentOfStates<CoinType>>(DEPLOYER);
         table::contains(&storedContentOfStates.coinEntityPool, lp)
     }
