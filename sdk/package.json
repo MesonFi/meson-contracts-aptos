@@ -1,7 +1,9 @@
 {
+  "scripts": {
+    "swap": "node swap_demo.js"
+  },
   "dependencies": {
     "aptos": "^1.3.16",
-    "dotenv": "^16.0.3",
-    "fs": "^0.0.1-security"
+    "dotenv": "^16.0.3"
   }
 }
