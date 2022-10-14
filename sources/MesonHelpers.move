@@ -64,10 +64,6 @@ module Meson::MesonHelpers {
 
 
 
-    /* ---------------------------- Main Function ---------------------------- */
-
-
-
     /* ---------------------------- Utils Function ---------------------------- */
 
     // The swap ID in explorer
