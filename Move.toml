@@ -9,4 +9,4 @@ AptosToken = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "a
 [addresses]
 std = "0x1"
 aptos_token = "0x3"
-Meson = "0x42"
+Meson = "0x53"

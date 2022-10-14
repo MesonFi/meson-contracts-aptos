@@ -5,12 +5,11 @@ module Meson::MesonSwap {
     use std::signer;
     use std::timestamp;
     use std::aptos_hash;
+    use aptos_framework::coin;
+    use aptos_framework::coin::{Coin};
     use Meson::MesonConfig;
-    use Meson::MesonTokens;
     use Meson::MesonHelpers;
     use Meson::MesonHelpers::{EncodedSwap, PostedSwap};
-    use aptos_token::token;
-    use aptos_token::token::{Token};
 
     const DEPLOYER: address = @Meson;
     const ENOT_DEPLOYER: u64 = 0;
@@ -27,22 +26,24 @@ module Meson::MesonSwap {
     /* ---------------------------- Struct & Constructor ---------------------------- */
 
     // Contains all the related tables (mappings).
-    struct StoredContentOfSwap has key {
+    // Each unique coin has a related `StoredContentOfSwap`.
+    struct StoredContentOfSwap<phantom CoinType> has key {
         _postedSwaps: table::Table<EncodedSwap, PostedSwap>,
-        _cachedToken: table::Table<EncodedSwap, Token>,
+        _cachedCoin: table::Table<EncodedSwap, Coin<CoinType>>,
     }
 
 
 
     /* ---------------------------- Initialize ---------------------------- */
 
-    public entry fun initializeTable(deployer: &signer) {
+    public entry fun initializeTable<CoinType>(deployer: &signer) {
         let deployerAddress = signer::address_of(deployer);
         assert!(deployerAddress == DEPLOYER, ENOT_DEPLOYER);
-        if(!exists<StoredContentOfSwap>(deployerAddress)) move_to<StoredContentOfSwap>(deployer, StoredContentOfSwap {
+        let newContent = StoredContentOfSwap<CoinType> {
             _postedSwaps: table::new<EncodedSwap, PostedSwap>(),
-            _cachedToken: table::new<EncodedSwap, Token>(),
-        });
+            _cachedCoin: table::new<EncodedSwap, Coin<CoinType>>(),
+        };
+        move_to<StoredContentOfSwap<CoinType>>(deployer, newContent);
     }
 
 
@@ -50,28 +51,27 @@ module Meson::MesonSwap {
     /* ---------------------------- Main Function ---------------------------- */
 
     // Step 1: postSwap
-    public entry fun postSwap(initiatorAccount: &signer, encodedSwap: EncodedSwap, recipient: address) acquires StoredContentOfSwap {
+    public entry fun postSwap<CoinType>(initiatorAccount: &signer, recipient: address, amount: u64, expireTs: u64, outChain: u64, inChain: u64, lockHash: vector<u8>) acquires StoredContentOfSwap {
         // Ensure that the `encodedSwap` doesn't exist.
-        let _storedContentOfSwap = borrow_global_mut<StoredContentOfSwap>(DEPLOYER);
+        let encodedSwap = MesonHelpers::newEncodedSwap(amount, expireTs, outChain, inChain, lockHash);  // To fixed!!
+        let _storedContentOfSwap = borrow_global_mut<StoredContentOfSwap<CoinType>>(DEPLOYER);
         let _postedSwaps = &mut _storedContentOfSwap._postedSwaps;
-        let _cachedToken = &mut _storedContentOfSwap._cachedToken;
+        let _cachedCoin = &mut _storedContentOfSwap._cachedCoin;
         assert!(!table::contains(_postedSwaps, encodedSwap), ESWAP_ALREADY_EXISTS);
         
         // Assertion about time-lock.
-        let inTokenId = MesonHelpers::inTokenIndexFrom(encodedSwap);
         let amount = MesonHelpers::amountFrom(encodedSwap);
         let delta = MesonHelpers::expireTsFrom(encodedSwap) - timestamp::now_seconds();
         assert!(delta > MesonConfig::get_MIN_BOND_TIME_PERIOD(), EEXPIRE_TOO_EARLY);
         assert!(delta < MesonConfig::get_MAX_BOND_TIME_PERIOD(), EEXPIRE_TOO_LATE);
 
-        // Withdraw token entity from the initiator.
-        let tokenId = MesonTokens::tokenForIndex(inTokenId);
-        let withdrewToken = token::withdraw_token(initiatorAccount, tokenId, amount);
+        // Withdraw coin entity from the initiator.
+        let withdrewCoin = coin::withdraw<CoinType>(initiatorAccount, amount);
 
         // Store the `postingValue` in contract.
         let postingValue = MesonHelpers::newPostedSwap(signer::address_of(initiatorAccount), recipient);
         table::add(_postedSwaps, encodedSwap, postingValue);
-        table::add(_cachedToken, encodedSwap, withdrewToken);
+        table::add(_cachedCoin, encodedSwap, withdrewCoin);
 
         /* ============================ To be added ============================ */
         // Emit `postedSwap` event!
@@ -80,11 +80,12 @@ module Meson::MesonSwap {
 
 
     // Step 4. executeSwap
-    public entry fun executeSwap(recipientAccount: &signer, encodedSwap: EncodedSwap, keyString: vector<u8>) acquires StoredContentOfSwap {
+    public entry fun executeSwap<CoinType>(recipientAccount: &signer, keyString: vector<u8>, amount: u64, expireTs: u64, outChain: u64, inChain: u64, lockHash: vector<u8>) acquires StoredContentOfSwap {
         // Ensure that the transaction exists.
-        let _storedContentOfSwap = borrow_global_mut<StoredContentOfSwap>(DEPLOYER);
+        let encodedSwap = MesonHelpers::newEncodedSwap(amount, expireTs, outChain, inChain, lockHash);  // To fixed!!
+        let _storedContentOfSwap = borrow_global_mut<StoredContentOfSwap<CoinType>>(DEPLOYER);
         let _postedSwaps = &mut _storedContentOfSwap._postedSwaps;
-        let _cachedToken = &mut _storedContentOfSwap._cachedToken;
+        let _cachedCoin = &mut _storedContentOfSwap._cachedCoin;
         assert!(table::contains(_postedSwaps, encodedSwap), ESWAP_NOT_EXISTS);
 
         // Ensure that the recipient is correct.
@@ -102,9 +103,9 @@ module Meson::MesonSwap {
         let expireTs = MesonHelpers::expireTsFrom(encodedSwap);
         assert!(expireTs < timestamp::now_seconds() + MesonConfig::get_MIN_BOND_TIME_PERIOD(), EALREADY_EXPIRED);
 
-        // Release the token.
-        let fetchedToken = table::remove(_cachedToken, encodedSwap);
-        token::direct_deposit_with_opt_in(initiator, fetchedToken);
+        // Release the coin.
+        let fetchedCoin = table::remove(_cachedCoin, encodedSwap);
+        coin::deposit<CoinType>(initiator, fetchedCoin);
         
         /* ============================ To be added ============================ */
         // Emit `postedSwap` event!
