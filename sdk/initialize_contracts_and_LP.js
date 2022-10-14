@@ -30,9 +30,7 @@ main = async () => {
     )
 
     const client = new AptosClient(NODE_URL)
-    const coinClient = new CoinClient(client);
-    const faucetClient = new FaucetClient(NODE_URL, FAUCET_URL)
-    // await faucetClient.fundAccount(mesonWallet.address(), 200000)
+    const coinClient = new CoinClient(client)
 
     let balance = await coinClient.checkBalance(mesonWallet)
     console.log(`Balance of mesonWallet: ${balance}`)
@@ -40,27 +38,27 @@ main = async () => {
 
     // `Initializing` process only execute once.
 
-    // console.log('=================== Initializing Contract... ===================')
-    // for (var struct_name of [USDT_Struct, USDC_Struct]) {
-    //     for (var module_name of ['MesonPools', 'MesonSwap', 'MesonStates']) {
-    //         await executeTransaction(
-    //             client, mesonWallet,
-    //             `${Meson_Address}::${module_name}::initializeTable`, [struct_name], []
-    //         )
-    //         console.log(`\t${module_name}<${struct_name}> initialized!`)
-    //     }
-    // }
+    console.log('=================== Initializing Contract ===================')
+    for (var struct_name of [USDT_Struct, USDC_Struct]) {
+        for (var module_name of ['MesonPools', 'MesonSwap', 'MesonStates']) {
+            await executeTransaction(
+                client, mesonWallet,
+                `${Meson_Address}::${module_name}::initializeTable`, [struct_name], []
+            )
+            console.log(`\t${module_name}<${struct_name}> initialized!`)
+        }
+    }
 
 
     // For liquidity provider
 
-    console.log('=================== Initializing liquidity provider... ===================')
+    console.log('=================== Initializing liquidity provider ===================')
     const deposit_amount = 500
     for (var struct_name of [USDT_Struct, USDC_Struct]) {
         await executeTransaction(
             client, lpWallet,
-            // `${Meson_Address}::MesonPools::depositAndRegister`, [struct_name], [deposit_amount] // (Just the first time)
-            `${Meson_Address}::MesonPools::deposit`, [struct_name], [deposit_amount]
+            `${Meson_Address}::MesonPools::depositAndRegister`, [struct_name], [deposit_amount] // (Just the first time)
+            // `${Meson_Address}::MesonPools::deposit`, [struct_name], [deposit_amount]
         )
         console.log(`Deposit ${deposit_amount} USDT(USDC) success!`)
     }

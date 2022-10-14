@@ -1,4 +1,4 @@
-const { AptosClient, AptosAccount, CoinClient, TokenClient, FaucetClient } = require("aptos");
+const { AptosClient, AptosAccount, CoinClient, FaucetClient } = require("aptos");
 const { readFileSync, writeFileSync } = require("fs");
 
 const NODE_URL = "https://fullnode.devnet.aptoslabs.com";
@@ -12,7 +12,13 @@ main = async () => {
     public_key: "${privateKeyObject.publicKeyHex}"
     account: ${privateKeyObject.address.slice(2)}`)
 
-    console.log(`${mesonWallet.address()}`)
+    const coinClient = new CoinClient(new AptosClient(NODE_URL));
+    const faucetClient = new FaucetClient(NODE_URL, FAUCET_URL)
+    await faucetClient.fundAccount(mesonWallet.address(), 100_000_000)
+
+    console.log(`Balance of ${mesonWallet.address()}: ${await coinClient.checkBalance(mesonWallet)}`)
 }
 
 main()
+
+// Then run: aptos move publish --package-dir ../meson-contracts-move
