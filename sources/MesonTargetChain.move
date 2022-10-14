@@ -9,7 +9,6 @@ module Meson::MesonPools {
     use aptos_framework::coin::{Coin};
     use Meson::MesonConfig;
     use Meson::MesonHelpers;
-    use Meson::MesonHelpers::{EncodedSwap, LockedSwap};
     use Meson::MesonStates;
 
     const DEPLOYER: address = @Meson;
@@ -27,7 +26,7 @@ module Meson::MesonPools {
 
     // Contains all the related tables (mappings).
     struct StoredContentOfPools<phantom CoinType> has key {
-        _lockedSwaps: table::Table<vector<u8>, LockedSwap>,
+        _lockedSwaps: table::Table<vector<u8>, MesonHelpers::LockedSwap>,
         _cachedCoin: table::Table<vector<u8>, Coin<CoinType>>,
     }
 
@@ -39,7 +38,7 @@ module Meson::MesonPools {
         let deployerAddress = signer::address_of(deployer);
         assert!(deployerAddress == DEPLOYER, ENOT_DEPLOYER);
         let newContent = StoredContentOfPools<CoinType> {
-            _lockedSwaps: table::new<vector<u8>, LockedSwap>(),
+            _lockedSwaps: table::new<vector<u8>, MesonHelpers::LockedSwap>(),
             _cachedCoin: table::new<vector<u8>, Coin<CoinType>>(),
         };
         move_to<StoredContentOfPools<CoinType>>(deployer, newContent);
