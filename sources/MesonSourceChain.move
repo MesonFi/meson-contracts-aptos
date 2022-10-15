@@ -79,8 +79,8 @@ module Meson::MesonSwap {
         let version: u8 = (encoded0 >> 120) as u8;
         let amount: u64 = (encoded0 >> 80) as u64 & 0xFFFFFFFFFFu64;
         let expireTs: u64 = (encoded1 >> 48) as u64 & 0xFFFFFFFFFFu64;
-        let inChain: u16 = (encoded1 >> 8) as u16;
-        let outChain: u16 = (encoded1 >> 32) as u16;
+        let inChain: u64 = (encoded1 >> 8) as u64;
+        let outChain: u64 = (encoded1 >> 32) as u64;
 
         // Ensure that the `encodedSwap` doesn't exist.
         let encodedSwap = MesonHelpers::newEncodedSwap(amount, expireTs, outChain, inChain, lockHash);  // To fixed!!
