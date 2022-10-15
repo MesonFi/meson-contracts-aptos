@@ -8,6 +8,8 @@
 
 2. Follow the guidance of [Installing Aptos CLI](https://aptos.dev/cli-tools/aptos-cli-tool/install-aptos-cli) by Aptos official documention to install the Atpos CLI(Command Line Interface). Run ```aptos -V``` to check the version.
 
+<br/>
+
 ### Compile the move contract
 
 A Move package source directory contains a ```Move.toml``` package manifest file along with a set of subdirectories:
@@ -24,6 +26,7 @@ a_move_package
 
 You can run command ```move build``` or ```aptos move compile``` under the move package dir to compile a move package (such as the root dir of this project). See ```move --help``` or ```aptos move --help``` for more.
 
+<br/>
 
 ### Deploy the contract on Atpos using Aptos CLI
 
@@ -51,6 +54,8 @@ aptos move publish --package-dir <package-dir>
 ```
 
 See [Publish the HelloBlockchain module with the Aptos CLI](https://aptos.dev/tutorials/your-first-dapp/#publish-the-helloblockchain-module-with-the-aptos-cli) for more.
+
+<br/>
 
 ### Deploy the contract on Aptos using Aptos SDK in javascript/typescript
 
