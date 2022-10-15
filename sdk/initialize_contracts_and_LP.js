@@ -2,7 +2,6 @@ const { AptosClient, AptosAccount, CoinClient, TokenClient, FaucetClient } = req
 const { readFileSync, writeFileSync } = require("fs");
 
 const NODE_URL = "https://fullnode.devnet.aptoslabs.com";
-const FAUCET_URL = "https://faucet.devnet.aptoslabs.com";
 
 const USDC_Struct = "0x01015ace920c716794445979be68d402d28b2805b7beaae935d7fe369fa7cfa0::aUSDC::TypeUSDC"
 const USDT_Struct = "0xaaefd8848cb707617bf82894e2d7af6214b3f3a8e3fc32e91bc026f05f5b10bb::aUSDT::TypeUSDT"
@@ -21,12 +20,12 @@ async function executeTransaction(client, wallet, function_name, type_arguments,
 
 main = async () => {
   const mesonWallet = AptosAccount.fromAptosAccountObject(
-    JSON.parse(readFileSync("wallet_for_test/wallet_1.json", "utf-8"))
+    JSON.parse(readFileSync("wallet_for_test/wallet_contract.json", "utf-8"))
   )
   const Meson_Address = mesonWallet.address()
 
   const lpWallet = AptosAccount.fromAptosAccountObject(
-    JSON.parse(readFileSync("wallet_for_test/wallet_3.json", "utf-8"))
+    JSON.parse(readFileSync("wallet_for_test/wallet_lp.json", "utf-8"))
   )
 
   const client = new AptosClient(NODE_URL)
@@ -53,14 +52,14 @@ main = async () => {
   // For liquidity provider
 
   console.log('=================== Initializing liquidity provider ===================')
-  const deposit_amount = 500
+  const deposit_amount = 500_000_000
   for (var struct_name of [USDT_Struct, USDC_Struct]) {
     await executeTransaction(
       client, lpWallet,
       `${Meson_Address}::MesonPools::depositAndRegister`, [struct_name], [deposit_amount] // (Just the first time)
       // `${Meson_Address}::MesonPools::deposit`, [struct_name], [deposit_amount]
     )
-    console.log(`Deposit ${deposit_amount} USDT(USDC) success!`)
+    console.log(`Deposit ${deposit_amount / 1_000_000} USDT(USDC) success!`)
   }
 
 }

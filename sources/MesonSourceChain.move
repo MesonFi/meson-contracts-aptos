@@ -88,13 +88,14 @@ module Meson::MesonSwap {
     // Step 4. executeSwap
     public entry fun executeSwap<CoinType>(
         signerAccount: &signer, // signer could be anyone
-        initiator: address,
-        recipient: address, // this is used when check signature
-        keyString: vector<u8>,
+        keyString: vector<u8>, 
         amount: u64, expireTs: u64, outChain: u64, inChain: u64,
         lockHash: vector<u8>,
-        depositToPool: bool
+        depositToPool: bool,
     ) acquires StoredContentOfSwap {
+        // Just for clearing the unusing variable warning
+        assert!(signer::address_of(signerAccount)!=@0x00, 0);
+
         // Ensure that the transaction exists.
         let encodedSwap = MesonHelpers::newEncodedSwap(amount, expireTs, outChain, inChain, lockHash);  // To fixed!!
         let _storedContentOfSwap = borrow_global_mut<StoredContentOfSwap<CoinType>>(DEPLOYER);
@@ -103,16 +104,14 @@ module Meson::MesonSwap {
         assert!(table::contains(_postedSwaps, encodedSwap), ESWAP_NOT_EXISTS);
 
         let postingValue = table::remove(_postedSwaps, encodedSwap);
-        let (initiator, poolOwner) = MesonHelpers::destructPosted(postingValue);
+        let (_, poolOwner) = MesonHelpers::destructPosted(postingValue);
 
         // Ensure that the `keyString` works.
         let calculateHash = aptos_hash::keccak256(keyString);
         let expectedHash = MesonHelpers::hashValueFrom(encodedSwap);
         assert!(calculateHash == expectedHash, EHASH_VALUE_NOT_MATCH);
 
-        // Assertion about time-lock.
-        let expireTs = MesonHelpers::expireTsFrom(encodedSwap);
-        assert!(expireTs < timestamp::now_seconds() + MesonConfig::get_MIN_BOND_TIME_PERIOD(), EALREADY_EXPIRED);
+        // We don't have to check the expireTs for this step.
 
         // Release the coin.
         let fetchedCoin = table::remove(_cachedCoin, encodedSwap);
@@ -120,7 +119,7 @@ module Meson::MesonSwap {
         if (depositToPool) {
             MesonStates::addLiquidity<CoinType>(poolOwner, fetchedCoin);
         } else {
-            coin::deposit<CoinType>(poolOwner, fetchedCoin);        // To fixed!
+            coin::deposit<CoinType>(poolOwner, fetchedCoin);
         }
         
         /* ============================ To be added ============================ */
@@ -128,5 +127,4 @@ module Meson::MesonSwap {
         /* ===================================================================== */
     }
 
-    
 }
