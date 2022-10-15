@@ -20,8 +20,8 @@ module Meson::MesonHelpers {
     struct EncodedSwap has copy, drop {
         amount: u64,
         expireTs: u64,
-        outChain: u16,
-        inChain: u16,
+        outChain: u64,
+        inChain: u64,
         lockHash: vector<u8>,
     }
 
@@ -44,7 +44,7 @@ module Meson::MesonHelpers {
     }
 
     // Create a new `EncodedSwap` instance
-    public(friend) fun newEncodedSwap(amount: u64, expireTs: u64, outChain: u16, inChain: u16, lockHash: vector<u8>): EncodedSwap {
+    public(friend) fun newEncodedSwap(amount: u64, expireTs: u64, outChain: u64, inChain: u64, lockHash: vector<u8>): EncodedSwap {
         EncodedSwap { amount, expireTs, outChain, inChain, lockHash }
     }
 

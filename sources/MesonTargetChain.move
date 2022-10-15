@@ -73,7 +73,7 @@ module Meson::MesonPools {
     public entry fun lock<CoinType>(
         poolOwnerAccount: &signer,
         initiator: address,
-        amount: u64, expireTs: u64, outChain: u16, inChain: u16,
+        amount: u64, expireTs: u64, outChain: u64, inChain: u64,
         lockHash: vector<u8>
     ) acquires StoredContentOfPools {
         // Ensure that the `lockedSwap` doesn't exist.
@@ -111,7 +111,7 @@ module Meson::MesonPools {
         signerAccount: &signer, // signer could be anyone
         initiator: address,
         recipient: address, // recipient is given on release
-        keyString: vector<u8>, amount: u64, expireTs: u64, outChain: u16, inChain: u16,
+        keyString: vector<u8>, amount: u64, expireTs: u64, outChain: u64, inChain: u64,
         lockHash: vector<u8>
     ) acquires StoredContentOfPools {
         // Ensure that the transaction exists.

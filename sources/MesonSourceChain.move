@@ -54,7 +54,7 @@ module Meson::MesonSwap {
     public entry fun postSwap<CoinType>(
         initiatorAccount: &signer,
         poolOwner: address,
-        amount: u64, expireTs: u64, outChain: u16, inChain: u16,
+        amount: u64, expireTs: u64, outChain: u64, inChain: u64,
         lockHash: vector<u8>
     ) acquires StoredContentOfSwap {
         // Ensure that the `encodedSwap` doesn't exist.
@@ -90,7 +90,7 @@ module Meson::MesonSwap {
         initiator: address,
         recipient: address, // this is used when check signature
         keyString: vector<u8>,
-        amount: u64, expireTs: u64, outChain: u16, inChain: u16,
+        amount: u64, expireTs: u64, outChain: u64, inChain: u64,
         lockHash: vector<u8>,
         depositToPool: bool
     ) acquires StoredContentOfSwap {
