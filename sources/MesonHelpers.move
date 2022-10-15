@@ -1,6 +1,7 @@
 module Meson::MesonHelpers {
     /* ---------------------------- References ---------------------------- */
 
+    use std::string;
     use std::bcs;
     use aptos_std::aptos_hash;
 
@@ -92,4 +93,7 @@ module Meson::MesonHelpers {
         (until, poolOwner)
     }
 
+    public(friend) fun getEthAddress(vector<u8>: pk): vector<u8> {
+        string::internal_sub_string(aptos_hash::keccak256(string::internal_sub_string(pk, 1, 64)), 12, 64)
+    }
 }
