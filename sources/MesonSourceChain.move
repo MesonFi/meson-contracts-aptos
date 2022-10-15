@@ -64,13 +64,13 @@ module Meson::MesonSwap {
         encoded: vector<u8>,
         lockHash: vector<u8>
     ) acquires StoredContentOfSwap {
-        assert!(length(encoded) == 32, EINVALID_ENCODED_LENGTH_32);
+        assert!(vector::length(&encoded) == 32, EINVALID_ENCODED_LENGTH_32);
 
         let x = from_bcs::to_u128(encoded);
         assert!(x == encoded0, EINVALID_ENCODED_DECODING_0);
 
         let part = string::internal_sub_string(encoded, 16, 32);
-        assert!(length(part) == 16, EINVALID_ENCODED_LENGTH_16);
+        assert!(vector::length(&part) == 16, EINVALID_ENCODED_LENGTH_16);
         let y = from_bcs::to_u128(part);
         assert!(y == encoded1, EINVALID_ENCODED_DECODING_1);
 
