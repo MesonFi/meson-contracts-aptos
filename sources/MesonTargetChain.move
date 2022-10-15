@@ -49,9 +49,8 @@ module Meson::MesonPools {
     /* ---------------------------- Main Function ---------------------------- */
 
     public entry fun depositAndRegister<CoinType>(lpAccount: &signer, amount: u64) {
-        let lpAddress = signer::address_of(lpAccount);
         let withdrewCoin = coin::withdraw<CoinType>(lpAccount, amount);
-        MesonStates::addLiquidityFirstTime<CoinType>(lpAddress, withdrewCoin);
+        MesonStates::addLiquidityFirstTime<CoinType>(lpAccount, withdrewCoin);
     }
 
     public entry fun deposit<CoinType>(lpAccount: &signer, amount: u64) {

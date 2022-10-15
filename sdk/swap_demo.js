@@ -54,7 +54,7 @@ main = async () => {
     BCS.bcsSerializeBytes(keccak256.digest(keyString)).slice(1)
   ]
   )
-  console.log(`User postSwap finished! Deposit ${swapNum} USDC.`)
+  console.log(`User postSwap finished! Deposit ${swapNum / 1e6} USDC.`)
 
 
   await executeTransaction(
@@ -64,7 +64,7 @@ main = async () => {
     BCS.bcsSerializeBytes(keccak256.digest(keyString)).slice(1)
   ]
   )
-  console.log(`LP lock finished! Deposit ${swapNum} USDT.`)
+  console.log(`LP lock finished! Deposit ${swapNum / 1e6} USDT.`)
 
 
   await executeTransaction(
@@ -75,7 +75,7 @@ main = async () => {
     BCS.bcsSerializeBytes(keccak256.digest(keyString)).slice(1)
   ]
   )
-  console.log(`User release finished! Release ${swapNum} USDT.`)
+  console.log(`User release finished! Release ${swapNum / 1e6} USDT.`)
 
 
   await executeTransaction(
@@ -85,7 +85,7 @@ main = async () => {
     BCS.bcsSerializeBytes(keccak256.digest(keyString)).slice(1), true
   ]
   )
-  console.log(`LP release finished! Release ${swapNum} USDC.`)
+  console.log(`LP release finished! Release ${swapNum / 1e6} USDC.`)
 }
 
 main()

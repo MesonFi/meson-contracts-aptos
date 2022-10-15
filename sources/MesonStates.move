@@ -18,6 +18,11 @@ module Meson::MesonStates {
 
     /* ---------------------------- Struct & Constructor ---------------------------- */
 
+    // Stake USDC to obtain equivalent StakingUSDC!
+    struct StakingCoin<phantom CoinType> has key {
+        value: u64,
+    }
+
     // Contains all the related tables (mappings).
     struct StoredContentOfStates<phantom CoinType> has key {
         coinEntityPool: table::Table<address, Coin<CoinType>>,
@@ -53,20 +58,28 @@ module Meson::MesonStates {
         table::contains(&storedContentOfStates.coinEntityPool, lp)
     }
 
-    public(friend) fun addLiquidityFirstTime<CoinType>(lp: address, coinToAdd: Coin<CoinType>) acquires StoredContentOfStates {
+    // Notice that only `addLiquidityFirstTime` need the LP signer, while `addLiquidity` and `removeLiquidity` only need the LP address.
+    public(friend) fun addLiquidityFirstTime<CoinType>(lpAccount: &signer, coinToAdd: Coin<CoinType>) acquires StoredContentOfStates {
         let storedContentOfStates = borrow_global_mut<StoredContentOfStates<CoinType>>(DEPLOYER);
-        table::add(&mut storedContentOfStates.coinEntityPool, lp, coinToAdd);   // If the lp already exists, this sentence will not execute successly because the existed Coin doesn't have ability `drop`. So we don't have to add an assert sentence.
+        move_to<StakingCoin<CoinType>>(lpAccount, StakingCoin<CoinType> { 
+            value: coin::value<CoinType>(&coinToAdd) 
+        });
+        table::add(&mut storedContentOfStates.coinEntityPool, signer::address_of(lpAccount), coinToAdd);   // If the lp already exists, this sentence will not execute successly because the existed Coin doesn't have ability `drop`. So we don't have to add an assert sentence.
     }
 
-    public(friend) fun addLiquidity<CoinType>(lp: address, coinToMerge: Coin<CoinType>) acquires StoredContentOfStates {
+    public(friend) fun addLiquidity<CoinType>(lpAddress: address, coinToMerge: Coin<CoinType>) acquires StoredContentOfStates, StakingCoin {
         let storedContentOfStates = borrow_global_mut<StoredContentOfStates<CoinType>>(DEPLOYER);
-        let coinEntityMutRef = table::borrow_mut(&mut storedContentOfStates.coinEntityPool, lp);
+        let coinEntityMutRef = table::borrow_mut(&mut storedContentOfStates.coinEntityPool, lpAddress);
+        let stakingValueMutRef = &mut borrow_global_mut<StakingCoin<CoinType>>(lpAddress).value;
+        *stakingValueMutRef = *stakingValueMutRef + coin::value<CoinType>(&coinToMerge);
         coin::merge<CoinType>(coinEntityMutRef, coinToMerge);
     }
 
-    public(friend) fun removeLiquidity<CoinType>(lp: address, amountToRemove: u64): Coin<CoinType> acquires StoredContentOfStates {
+    public(friend) fun removeLiquidity<CoinType>(lpAddress: address, amountToRemove: u64): Coin<CoinType> acquires StoredContentOfStates, StakingCoin {
         let storedContentOfStates = borrow_global_mut<StoredContentOfStates<CoinType>>(DEPLOYER);
-        let coinEntityMutRef = table::borrow_mut(&mut storedContentOfStates.coinEntityPool, lp);
+        let coinEntityMutRef = table::borrow_mut(&mut storedContentOfStates.coinEntityPool, lpAddress);
+        let stakingValueMutRef = &mut borrow_global_mut<StakingCoin<CoinType>>(lpAddress).value;
+        *stakingValueMutRef = *stakingValueMutRef - amountToRemove;
         coin::extract<CoinType>(coinEntityMutRef, amountToRemove)
     }
 
