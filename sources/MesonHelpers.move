@@ -28,12 +28,12 @@ module Meson::MesonHelpers {
     // This struct is only for the function `getSwapHash`.
     struct EncodedSwapAndInitiator has drop {
         encodedSwap: EncodedSwap,
-        initiator: address,
+        initiator: vector<u8>,
     }
 
-    // `PostedSwap` is in format of `initiator:address|poolIndex:uint40` in solidity.
+    // `PostedSwap` is in format of `initiatorAddr:address|poolIndex:uint40` in solidity.
     struct PostedSwap has store {
-        initiator: address,
+        initiatorAddr: address,
         poolOwner: address,
     }
 
@@ -49,8 +49,8 @@ module Meson::MesonHelpers {
     }
 
     // Create a new `PostedSwap` instance
-    public(friend) fun newPostedSwap(initiator: address, poolOwner: address): PostedSwap {
-        PostedSwap { initiator, poolOwner }
+    public(friend) fun newPostedSwap(initiatorAddr: address, poolOwner: address): PostedSwap {
+        PostedSwap { initiatorAddr, poolOwner }
     }
 
     // Create a new `LockedSwap` instance
@@ -63,7 +63,7 @@ module Meson::MesonHelpers {
     /* ---------------------------- Utils Function ---------------------------- */
 
     // The swap ID in explorer
-    public(friend) fun getSwapId(encodedSwap: EncodedSwap, initiator: address): vector<u8> {
+    public(friend) fun getSwapId(encodedSwap: EncodedSwap, initiator: vector<u8>): vector<u8> {
         let encodeContent = EncodedSwapAndInitiator { encodedSwap, initiator };
         let serializedContent = bcs::to_bytes(&encodeContent);
         aptos_hash::keccak256(serializedContent)
@@ -83,8 +83,8 @@ module Meson::MesonHelpers {
     }
 
     public(friend) fun destructPosted(postingValue: PostedSwap): (address, address) {
-        let PostedSwap { initiator, poolOwner } = postingValue;
-        (initiator, poolOwner)
+        let PostedSwap { initiatorAddr, poolOwner } = postingValue;
+        (initiatorAddr, poolOwner)
     }
 
     public(friend) fun destructLocked(lockedSwap: LockedSwap): (u64, address) {

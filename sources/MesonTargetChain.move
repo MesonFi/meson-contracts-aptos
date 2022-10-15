@@ -72,7 +72,7 @@ module Meson::MesonPools {
     // Step 2: Lock
     public entry fun lock<CoinType>(
         poolOwnerAccount: &signer,
-        initiator: address,
+        initiator: vector<u8>, // TODO initiator is not an aptos address
         amount: u64, expireTs: u64, outChain: u16, inChain: u16,
         lockHash: vector<u8>
     ) acquires StoredContentOfPools {
@@ -109,7 +109,7 @@ module Meson::MesonPools {
     // The priciple of Hash-Time Locked Contract: `keyString` is the key of `lockHash`!
     public entry fun release<CoinType>(
         signerAccount: &signer, // signer could be anyone
-        initiator: address,
+        initiator: vector<u8>, // TODO initiator is not an aptos address
         recipient: address, // recipient is given on release
         keyString: vector<u8>, amount: u64, expireTs: u64, outChain: u16, inChain: u16,
         lockHash: vector<u8>

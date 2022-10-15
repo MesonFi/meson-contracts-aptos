@@ -111,7 +111,7 @@ module Meson::MesonSwap {
     // Step 4. executeSwap
     public entry fun executeSwap<CoinType>(
         signerAccount: &signer, // signer could be anyone
-        initiator: address,
+        initiator: vector<u8>, // this is used when check signature
         recipient: address, // this is used when check signature
         keyString: vector<u8>,
         amount: u64, expireTs: u64, outChain: u16, inChain: u16,
@@ -126,7 +126,7 @@ module Meson::MesonSwap {
         assert!(table::contains(_postedSwaps, encodedSwap), ESWAP_NOT_EXISTS);
 
         let postingValue = table::remove(_postedSwaps, encodedSwap);
-        let (initiator, poolOwner) = MesonHelpers::destructPosted(postingValue);
+        let (initiatorAddr, poolOwner) = MesonHelpers::destructPosted(postingValue);
 
         // Ensure that the `keyString` works.
         let calculateHash = aptos_hash::keccak256(keyString);
