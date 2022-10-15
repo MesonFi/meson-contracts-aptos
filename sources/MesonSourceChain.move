@@ -1,10 +1,12 @@
 module Meson::MesonSwap {
     /* ---------------------------- References ---------------------------- */
 
+    use std::string;
     use std::table;
     use std::signer;
     use std::timestamp;
     use std::aptos_hash;
+    use aptos_std::from_bcs // not sure
     use aptos_framework::coin;
     use aptos_framework::coin::{Coin};
     use Meson::MesonConfig;
@@ -22,6 +24,9 @@ module Meson::MesonSwap {
     const ERECIPENT_NOT_MATCH: u64 = 11;
 
     
+    const EINVALID_ENCODED_LENGTH_32: u64 = 33;
+    const EINVALID_ENCODED_LENGTH_16: u64 = 34;
+    const EINVALID_ENCODED_DECODING: u64 = 35;
 
     /* ---------------------------- Struct & Constructor ---------------------------- */
 
@@ -54,9 +59,28 @@ module Meson::MesonSwap {
     public entry fun postSwap<CoinType>(
         initiatorAccount: &signer,
         poolOwner: address,
-        amount: u64, expireTs: u64, outChain: u16, inChain: u16,
+        encoded0: u128,
+        encoded1: u128,
+        encoded: vector<u8>,
         lockHash: vector<u8>
     ) acquires StoredContentOfSwap {
+        assert!(length(encoded) == 32, EINVALID_ENCODED_LENGTH_32);
+
+        let x = from_bcs::to_u128(encoded);
+        assert!(x == encoded0, EINVALID_ENCODED_DECODING_0);
+
+        let part = string::internal_sub_string(encoded, 16, 32);
+        assert!(length(part) == 16, EINVALID_ENCODED_LENGTH_16);
+        let y = from_bcs::to_u128(part);
+        assert!(y == encoded1, EINVALID_ENCODED_DECODING_1);
+
+        // as will take lower bits and disregard upper bits
+        let version: u8 = (encoded0 >> 120) as u8;
+        let amount: u64 = (encoded0 >> 80) as u64 & 0xFFFFFFFFFFu64;
+        let expireTs: u64 = (encoded1 >> 48) as u64 & 0xFFFFFFFFFFu64;
+        let inChain: u16 = (encoded1 >> 8) as u16;
+        let outChain: u16 = (encoded1 >> 32) as u16;
+
         // Ensure that the `encodedSwap` doesn't exist.
         let encodedSwap = MesonHelpers::newEncodedSwap(amount, expireTs, outChain, inChain, lockHash);  // To fixed!!
         let _storedContentOfSwap = borrow_global_mut<StoredContentOfSwap<CoinType>>(DEPLOYER);
@@ -127,5 +151,5 @@ module Meson::MesonSwap {
         /* ===================================================================== */
     }
 
-    
+
 }
