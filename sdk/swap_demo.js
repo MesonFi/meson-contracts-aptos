@@ -11,7 +11,7 @@ const Meson_Address = "0x00085738d646709608dd7a429c32e147ecbd06741fec64399b9282a
 
 
 async function executeTransaction(client, wallet, function_name, type_arguments, arguments) {
-  payload = {
+  const payload = {
     function: function_name, type_arguments: type_arguments, arguments: arguments
   }
   const rawTxn = await client.generateTransaction(wallet.address(), payload);
