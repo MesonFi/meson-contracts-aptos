@@ -11,6 +11,7 @@ module Meson::MesonStates {
     const ENOT_DEPLOYER: u64 = 0;
     const ECOIN_TYPE_ERROR: u64 = 5;
 
+    friend Meson::MesonSwap;
     friend Meson::MesonPools;
 
 

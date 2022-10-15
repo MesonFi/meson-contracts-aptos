@@ -34,13 +34,13 @@ module Meson::MesonHelpers {
     // `PostedSwap` is in format of `initiator:address|poolIndex:uint40` in solidity.
     struct PostedSwap has store {
         initiator: address,
-        recipient: address,
+        poolOwner: address,
     }
 
     // `LockedSwap` is in format of `until:uint40|poolIndex:uint40` in solidity.
     struct LockedSwap has store {
         until: u64,
-        recipient: address,
+        poolOwner: address,
     }
 
     // Create a new `EncodedSwap` instance
@@ -49,13 +49,13 @@ module Meson::MesonHelpers {
     }
 
     // Create a new `PostedSwap` instance
-    public(friend) fun newPostedSwap(initiator: address, recipient: address): PostedSwap {
-        PostedSwap { initiator, recipient }
+    public(friend) fun newPostedSwap(initiator: address, poolOwner: address): PostedSwap {
+        PostedSwap { initiator, poolOwner }
     }
 
     // Create a new `LockedSwap` instance
-    public(friend) fun newLockedSwap(until: u64, recipient: address): LockedSwap {
-        LockedSwap { until, recipient }
+    public(friend) fun newLockedSwap(until: u64, poolOwner: address): LockedSwap {
+        LockedSwap { until, poolOwner }
     }
 
 
@@ -83,13 +83,13 @@ module Meson::MesonHelpers {
     }
 
     public(friend) fun destructPosted(postingValue: PostedSwap): (address, address) {
-        let PostedSwap { initiator, recipient } = postingValue;
-        (initiator, recipient)
+        let PostedSwap { initiator, poolOwner } = postingValue;
+        (initiator, poolOwner)
     }
 
     public(friend) fun destructLocked(lockedSwap: LockedSwap): (u64, address) {
-        let LockedSwap { until, recipient } = lockedSwap;
-        (until, recipient)
+        let LockedSwap { until, poolOwner } = lockedSwap;
+        (until, poolOwner)
     }
 
 }

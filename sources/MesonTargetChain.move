@@ -70,7 +70,12 @@ module Meson::MesonPools {
 
 
     // Step 2: Lock
-    public entry fun lock<CoinType>(recipientAccount: &signer, initiator: address, amount: u64, expireTs: u64, outChain: u64, inChain: u64, lockHash: vector<u8>) acquires StoredContentOfPools {
+    public entry fun lock<CoinType>(
+        poolOwnerAccount: &signer,
+        initiator: address,
+        amount: u64, expireTs: u64, outChain: u64, inChain: u64,
+        lockHash: vector<u8>
+    ) acquires StoredContentOfPools {
         // Ensure that the `lockedSwap` doesn't exist.
         let encodedSwap = MesonHelpers::newEncodedSwap(amount, expireTs, outChain, inChain, lockHash);  // To fixed!!
         let _storedContentOfPools = borrow_global_mut<StoredContentOfPools<CoinType>>(DEPLOYER);
@@ -80,17 +85,17 @@ module Meson::MesonPools {
         assert!(!table::contains(_lockedSwaps, swapId), ESWAP_ALREADY_EXISTS);
 
         // Assertion about time-lock and LP pool.
-        let recipient = signer::address_of(recipientAccount);    // Equals to LP Address
+        let poolOwner = signer::address_of(poolOwnerAccount);    // Equals to LP Address
         let amount = MesonHelpers::amountFrom(encodedSwap);
         let until = timestamp::now_seconds() + MesonConfig::get_LOCK_TIME_PERIOD();
-        assert!(MesonStates::lpCoinExists<CoinType>(recipient), ELP_POOL_NOT_EXISTS);
+        assert!(MesonStates::lpCoinExists<CoinType>(poolOwner), ELP_POOL_NOT_EXISTS);
         assert!(until < MesonHelpers::expireTsFrom(encodedSwap) - 300, EEXIPRE_TS_IS_SOON);
 
         // Withdraw coin entity from the LP pool.
-        let withdrewCoin = MesonStates::removeLiquidity<CoinType>(recipient, amount);
+        let withdrewCoin = MesonStates::removeLiquidity<CoinType>(poolOwner, amount);
 
         // Store the `lockingValue` in contract.
-        let lockingValue = MesonHelpers::newLockedSwap(until, recipient);
+        let lockingValue = MesonHelpers::newLockedSwap(until, poolOwner);
         table::add(_lockedSwaps, swapId, lockingValue);
         table::add(_cachedCoin, swapId, withdrewCoin);
 
@@ -102,13 +107,18 @@ module Meson::MesonPools {
 
     // Step 3: Release
     // The priciple of Hash-Time Locked Contract: `keyString` is the key of `lockHash`!
-    public entry fun release<CoinType>(initiatorAccount: &signer, keyString: vector<u8>, amount: u64, expireTs: u64, outChain: u64, inChain: u64, lockHash: vector<u8>) acquires StoredContentOfPools {
+    public entry fun release<CoinType>(
+        signerAccount: &signer, // signer could be anyone
+        initiator: address,
+        recipient: address, // recipient is given on release
+        keyString: vector<u8>, amount: u64, expireTs: u64, outChain: u64, inChain: u64,
+        lockHash: vector<u8>
+    ) acquires StoredContentOfPools {
         // Ensure that the transaction exists.
         let encodedSwap = MesonHelpers::newEncodedSwap(amount, expireTs, outChain, inChain, lockHash);  // To fixed!!
         let _storedContentOfPools = borrow_global_mut<StoredContentOfPools<CoinType>>(DEPLOYER);
         let _lockedSwaps = &mut _storedContentOfPools._lockedSwaps;
         let _cachedCoin = &mut _storedContentOfPools._cachedCoin;
-        let initiator = signer::address_of(initiatorAccount);
         let swapId = MesonHelpers::getSwapId(encodedSwap, initiator);
         assert!(table::contains(_lockedSwaps, swapId), ESWAP_NOT_EXISTS);
 
@@ -119,12 +129,12 @@ module Meson::MesonPools {
 
         // Assertion about time-lock.
         let lockingValue = table::remove(_lockedSwaps, swapId);
-        let (until, recipient) = MesonHelpers::destructLocked(lockingValue);
+        let (until, poolOwner) = MesonHelpers::destructLocked(lockingValue);
         assert!(until > timestamp::now_seconds(), EALREADY_EXPIRED);
 
         // Release the coin.
         let fetchedCoin = table::remove(_cachedCoin, swapId);
-        MesonStates::addLiquidity<CoinType>(recipient, fetchedCoin);
+        coin::deposit<CoinType>(recipient, fetchedCoin); // should deposit to recipient
         
         /* ============================ To be added ============================ */
         // Emit `postedSwap` event!
