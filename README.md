@@ -2,7 +2,7 @@
 
 ## Deploy
 
-### Install move and aptos client
+### Install Move CLI and Aptos CLI
 
 1. Follow the guidance in [Move Tutorial](https://github.com/move-language/move/tree/main/language/documentation/tutorial#step-0-installation) by Move official documention to install the move CLI(Command Line Interface). Run ```move -V``` to check the version.
 
@@ -10,7 +10,7 @@
 
 <br/>
 
-### Compile the move contract
+### Compile the move package
 
 A Move package source directory contains a ```Move.toml``` package manifest file along with a set of subdirectories:
 
@@ -24,7 +24,7 @@ a_move_package
 └── tests          (optional, test mode)
 ```
 
-You can run command ```move build``` or ```aptos move compile``` under the move package dir to compile a move package (such as the root dir of this project). See ```move --help``` or ```aptos move --help``` for more.
+You can run command ```move build``` or ```aptos move compile```(recommended) under the move package dir to compile a move package (such as the root dir of this project). Run ```move --help``` or ```aptos move --help``` for more.
 
 <br/>
 
@@ -66,4 +66,4 @@ const packageMetadata = fs.readFileSync(path.join(modulePath, "build", "Examples
 const moduleData = fs.readFileSync(path.join(modulePath, "build", "Examples", "bytecode_modules", `${moduleName}.mv`));
 ```
 
-See [yourcoin.ts](https://github.com/aptos-labs/aptos-core/blob/main/ecosystem/typescript/sdk/examples/typescript/your_coin.ts#L97) for more.
+See [yourcoin.ts (Line 97~100)](https://github.com/aptos-labs/aptos-core/blob/main/ecosystem/typescript/sdk/examples/typescript/your_coin.ts#L97) for more.
