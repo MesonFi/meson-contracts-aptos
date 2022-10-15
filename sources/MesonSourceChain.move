@@ -12,6 +12,7 @@ module Meson::MesonSwap {
     use Meson::MesonConfig;
     use Meson::MesonHelpers;
     use Meson::MesonHelpers::{EncodedSwap, PostedSwap};
+    use Meson::MesonStates;
 
     const DEPLOYER: address = @Meson;
     const ENOT_DEPLOYER: u64 = 0;
@@ -114,7 +115,7 @@ module Meson::MesonSwap {
         initiator: vector<u8>, // this is used when check signature
         recipient: address, // this is used when check signature
         keyString: vector<u8>,
-        amount: u64, expireTs: u64, outChain: u16, inChain: u16,
+        amount: u64, expireTs: u64, outChain: u64, inChain: u64,
         lockHash: vector<u8>,
         depositToPool: bool
     ) acquires StoredContentOfSwap {
@@ -140,7 +141,7 @@ module Meson::MesonSwap {
         // Release the coin.
         let fetchedCoin = table::remove(_cachedCoin, encodedSwap);
 
-        if depositToPool {
+        if (depositToPool) {
             MesonStates::addLiquidity<CoinType>(poolOwner, fetchedCoin);
         } else {
             coin::deposit<CoinType>(poolOwner, fetchedCoin);        // To fixed!
