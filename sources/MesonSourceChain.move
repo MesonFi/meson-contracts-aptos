@@ -10,7 +10,6 @@ module Meson::MesonSwap {
     use aptos_framework::coin::{Coin};
     use Meson::MesonConfig;
     use Meson::MesonHelpers;
-    use Meson::MesonHelpers::{ PostedSwap};
     use Meson::MesonStates;
 
     const DEPLOYER: address = @Meson;
@@ -37,7 +36,21 @@ module Meson::MesonSwap {
         _cachedCoin: table::Table<vector<u128>, Coin<CoinType>>,
     }
 
+    // `PostedSwap` is in format of `initiatorAddr:address|poolIndex:uint40` in solidity.
+    struct PostedSwap has store {
+        initiatorAddr: address,
+        poolOwner: address,
+    }
 
+    // Create a new `PostedSwap` instance
+    fun newPostedSwap(initiatorAddr: address, poolOwner: address): PostedSwap {
+        PostedSwap { initiatorAddr, poolOwner }
+    }
+
+    fun destructPosted(postingValue: PostedSwap): (address, address) {
+        let PostedSwap { initiatorAddr, poolOwner } = postingValue;
+        (initiatorAddr, poolOwner)
+    }
 
     /* ---------------------------- Initialize ---------------------------- */
 
@@ -84,7 +97,7 @@ module Meson::MesonSwap {
         let withdrewCoin = coin::withdraw<CoinType>(initiatorAccount, amount);
 
         // Store the `postingValue` in contract.
-        let postingValue = MesonHelpers::newPostedSwap(signer::address_of(initiatorAccount), poolOwner);
+        let postingValue = newPostedSwap(signer::address_of(initiatorAccount), poolOwner);
         table::add(_postedSwaps, encoded, postingValue);
         table::add(_cachedCoin, encoded , withdrewCoin);
 
@@ -111,7 +124,7 @@ module Meson::MesonSwap {
         assert!(table::contains(_postedSwaps, encoded), ESWAP_NOT_EXISTS);
 
         let postingValue = table::remove(_postedSwaps, encoded);
-        let (_initiatorAddr, poolOwner) = MesonHelpers::destructPosted(postingValue);
+        let (_initiatorAddr, poolOwner) = destructPosted(postingValue);
 
         // Ensure that the `keyString` works.
         let calculateHash = aptos_hash::keccak256(keyString);

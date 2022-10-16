@@ -26,11 +26,26 @@ module Meson::MesonPools {
 
     // Contains all the related tables (mappings).
     struct StoredContentOfPools<phantom CoinType> has key {
-        _lockedSwaps: table::Table<vector<u8>, MesonHelpers::LockedSwap>,
+        _lockedSwaps: table::Table<vector<u8>, LockedSwap>,
         _cachedCoin: table::Table<vector<u8>, Coin<CoinType>>,
     }
 
+    // `LockedSwap` is in format of `until:uint40|poolIndex:uint40` in solidity.
+    struct LockedSwap has store {
+        until: u64,
+        poolOwner: address,
+        recipient: address,
+    }
 
+    // Create a new `LockedSwap` instance
+    fun newLockedSwap(until: u64, poolOwner: address, recipient: address): LockedSwap {
+        LockedSwap { until, poolOwner, recipient }
+    }
+
+    fun destructLocked(lockedSwap: LockedSwap): (u64, address, address) {
+        let LockedSwap { until, poolOwner, recipient } = lockedSwap;
+        (until, poolOwner, recipient)
+    }
 
     /* ---------------------------- Initialize ---------------------------- */
 
@@ -38,7 +53,7 @@ module Meson::MesonPools {
         let deployerAddress = signer::address_of(deployer);
         assert!(deployerAddress == DEPLOYER, ENOT_DEPLOYER);
         let newContent = StoredContentOfPools<CoinType> {
-            _lockedSwaps: table::new<vector<u8>, MesonHelpers::LockedSwap>(),
+            _lockedSwaps: table::new<vector<u8>, LockedSwap>(),
             _cachedCoin: table::new<vector<u8>, Coin<CoinType>>(),
         };
         move_to<StoredContentOfPools<CoinType>>(deployer, newContent);
@@ -73,6 +88,7 @@ module Meson::MesonPools {
         poolOwnerAccount: &signer,
         encoded: vector<u128>,
         initiator: vector<u8>, // TODO initiator is not an aptos address
+        recipient: address,
         _lockHash: vector<u8>
     ) acquires StoredContentOfPools {
         // Ensure that the `lockedSwap` doesn't exist.
@@ -93,7 +109,7 @@ module Meson::MesonPools {
         let withdrewCoin = MesonStates::removeLiquidity<CoinType>(poolOwner, amount);
 
         // Store the `lockingValue` in contract.
-        let lockingValue = MesonHelpers::newLockedSwap(until, poolOwner);
+        let lockingValue = newLockedSwap(until, poolOwner, recipient);
         table::add(_lockedSwaps, swapId, lockingValue);
         table::add(_cachedCoin, swapId, withdrewCoin);
 
@@ -109,7 +125,6 @@ module Meson::MesonPools {
         _signerAccount: &signer, // signer could be anyone
         encoded: vector<u128>,
         initiator: vector<u8>, // TODO initiator is not an aptos address
-        recipient: address, // recipient is given on release
         keyString: vector<u8>,
         lockHash: vector<u8>
     ) acquires StoredContentOfPools {
@@ -126,7 +141,7 @@ module Meson::MesonPools {
 
         // Assertion about time-lock.
         let lockingValue = table::remove(_lockedSwaps, swapId);
-        let (until, _poolOwner) = MesonHelpers::destructLocked(lockingValue);
+        let (until, _poolOwner, recipient) = destructLocked(lockingValue);
         assert!(until > timestamp::now_seconds(), EALREADY_EXPIRED);
 
         // Release the coin.
