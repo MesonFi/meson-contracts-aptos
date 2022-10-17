@@ -51,7 +51,7 @@ module Meson::MesonHelpers {
         let eth_addr = vector::empty<u8>();
         let i = 12;
         while (i < 32) {
-            vector::push_back(&mut addr, *vector::borrow<u8>(&hash, i));
+            vector::push_back(&mut eth_addr, *vector::borrow<u8>(&hash, i));
             i = i + 1;
         };
         eth_addr
