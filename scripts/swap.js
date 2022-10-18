@@ -2,7 +2,7 @@ const dotenv = require('dotenv')
 const fs = require('fs')
 const path = require('path')
 const { AptosClient } = require('aptos')
-const { Wallet } = require('ethers')
+const { Wallet, utils } = require('ethers')
 
 const {
   adaptor,
@@ -41,12 +41,12 @@ async function swap() {
   const user = adaptor.getWallet(APTOS_PRIVATE_KEY, client)
   const userAddress = await user.getAddress()
   console.log(`User address: ${userAddress}`)
-  console.log(`APT Balance: ${(await user.getBalance(userAddress)).toString()}`)
+  console.log(`Balance: ${utils.formatUnits(await user.getBalance(userAddress), 8)} APT`)
 
   const lp = adaptor.getWallet(APTOS_LP_PRIVATE_KEY, client)
   const lpAddress = await lp.getAddress()
   console.log(`LP address: ${lpAddress}`)
-  console.log(`APT Balance: ${(await lp.getBalance(lpAddress)).toString()}`)
+  console.log(`Balance: ${utils.formatUnits(await lp.getBalance(lpAddress), 8)} APT`)
 
   const meson = adaptor.getContract(address, Meson.abi, lp)
 

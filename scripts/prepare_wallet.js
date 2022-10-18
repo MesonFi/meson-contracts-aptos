@@ -2,6 +2,7 @@ const dotenv = require('dotenv')
 const fs = require('fs')
 const path = require('path')
 const { AptosClient, FaucetClient } = require('aptos')
+const { utils } = require('ethers')
 const { adaptor } = require('@mesonfi/sdk')
 
 dotenv.config()
@@ -25,7 +26,7 @@ async function prepare() {
     await faucetClient.fundAccount(wallet.signer.address(), 1 * 1e8)
   
     const bal = await wallet.getBalance(await wallet.getAddress())
-    console.log(`Balance: ${bal.toString()}`)
+    console.log(`Balance: ${utils.formatUnits(bal, 8)} APT`)
   }
 
 
