@@ -9,7 +9,8 @@
     "predeploy": "yarn build:new",
     "deploy": "aptos move publish --assume-yes",
     "postdeploy": "node ./scripts/initialize_contracts.js",
-    "register": "node ./scripts/register_coins.js"
+    "register": "node ./scripts/register_coins.js",
+    "swap": "node ./scripts/swap.js"
   },
   "dependencies": {
     "@mesonfi/contract-abis": "^1.0.0",
