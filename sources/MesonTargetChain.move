@@ -26,11 +26,26 @@ module Meson::MesonPools {
 
     // Contains all the related tables (mappings).
     struct StoredContentOfPools<phantom CoinType> has key {
-        _lockedSwaps: table::Table<vector<u8>, MesonHelpers::LockedSwap>,
+        _lockedSwaps: table::Table<vector<u8>, LockedSwap>,
         _cachedCoin: table::Table<vector<u8>, Coin<CoinType>>,
     }
 
+    // `LockedSwap` is in format of `until:uint40|poolIndex:uint40` in solidity.
+    struct LockedSwap has store {
+        until: u64,
+        poolOwner: address,
+        recipient: address,
+    }
 
+    // Create a new `LockedSwap` instance
+    fun newLockedSwap(until: u64, poolOwner: address, recipient: address): LockedSwap {
+        LockedSwap { until, poolOwner, recipient }
+    }
+
+    fun destructLocked(lockedSwap: LockedSwap): (u64, address, address) {
+        let LockedSwap { until, poolOwner, recipient } = lockedSwap;
+        (until, poolOwner, recipient)
+    }
 
     /* ---------------------------- Initialize ---------------------------- */
 
@@ -38,7 +53,7 @@ module Meson::MesonPools {
         let deployerAddress = signer::address_of(deployer);
         assert!(deployerAddress == DEPLOYER, ENOT_DEPLOYER);
         let newContent = StoredContentOfPools<CoinType> {
-            _lockedSwaps: table::new<vector<u8>, MesonHelpers::LockedSwap>(),
+            _lockedSwaps: table::new<vector<u8>, LockedSwap>(),
             _cachedCoin: table::new<vector<u8>, Coin<CoinType>>(),
         };
         move_to<StoredContentOfPools<CoinType>>(deployer, newContent);
@@ -71,32 +86,32 @@ module Meson::MesonPools {
     // Step 2: Lock
     public entry fun lock<CoinType>(
         poolOwnerAccount: &signer,
-        initiator: address,
-        amount: u64, expireTs: u64, outChain: u64, inChain: u64,
+        encoded: vector<u128>,
+        initiator: vector<u8>,
+        recipient: address,
         lockHash: vector<u8>
     ) acquires StoredContentOfPools {
         // Ensure that the `lockedSwap` doesn't exist.
-        let encodedSwap = MesonHelpers::newEncodedSwap(amount, expireTs, outChain, inChain, lockHash);  // To fixed!!
         let _storedContentOfPools = borrow_global_mut<StoredContentOfPools<CoinType>>(DEPLOYER);
         let _lockedSwaps = &mut _storedContentOfPools._lockedSwaps;
         let _cachedCoin = &mut _storedContentOfPools._cachedCoin;
-        let swapId = MesonHelpers::getSwapId(encodedSwap, initiator);
-        assert!(!table::contains(_lockedSwaps, swapId), ESWAP_ALREADY_EXISTS);
+        let _swapId = MesonHelpers::getSwapId(encoded, initiator);
+        assert!(!table::contains(_lockedSwaps, lockHash), ESWAP_ALREADY_EXISTS);
 
         // Assertion about time-lock and LP pool.
         let poolOwner = signer::address_of(poolOwnerAccount);    // Equals to LP Address
-        let amount = MesonHelpers::amountFrom(encodedSwap);
+        let amount = MesonHelpers::amountFrom(encoded);
         let until = timestamp::now_seconds() + MesonConfig::get_LOCK_TIME_PERIOD();
         assert!(MesonStates::lpCoinExists<CoinType>(poolOwner), ELP_POOL_NOT_EXISTS);
-        assert!(until < MesonHelpers::expireTsFrom(encodedSwap) - 300, EEXIPRE_TS_IS_SOON);
+        assert!(until < MesonHelpers::expireTsFrom(encoded) - 300, EEXIPRE_TS_IS_SOON);
 
         // Withdraw coin entity from the LP pool.
         let withdrewCoin = MesonStates::removeLiquidity<CoinType>(poolOwner, amount);
 
         // Store the `lockingValue` in contract.
-        let lockingValue = MesonHelpers::newLockedSwap(until, poolOwner);
-        table::add(_lockedSwaps, swapId, lockingValue);
-        table::add(_cachedCoin, swapId, withdrewCoin);
+        let lockingValue = newLockedSwap(until, poolOwner, recipient);
+        table::add(_lockedSwaps, lockHash, lockingValue);
+        table::add(_cachedCoin, lockHash, withdrewCoin);
 
         /* ============================ To be added ============================ */
         // Emit `postedSwap` event!
@@ -107,36 +122,30 @@ module Meson::MesonPools {
     // Step 3: Release
     // The priciple of Hash-Time Locked Contract: `keyString` is the key of `lockHash`!
     public entry fun release<CoinType>(
-        signerAccount: &signer, // signer could be anyone
-        initiator: address,
-        recipient: address, // recipient is given on release
-        keyString: vector<u8>, 
-        amount: u64, expireTs: u64, outChain: u64, inChain: u64,
+        _signerAccount: &signer, // signer could be anyone
+        encoded: vector<u128>,
+        initiator: vector<u8>,
+        keyString: vector<u8>,
         lockHash: vector<u8>
     ) acquires StoredContentOfPools {
-        // Just for clearing the unusing variable warning
-        assert!(signer::address_of(signerAccount)!=@0x00, 0);
-
         // Ensure that the transaction exists.
-        let encodedSwap = MesonHelpers::newEncodedSwap(amount, expireTs, outChain, inChain, lockHash);  // To fixed!!
         let _storedContentOfPools = borrow_global_mut<StoredContentOfPools<CoinType>>(DEPLOYER);
         let _lockedSwaps = &mut _storedContentOfPools._lockedSwaps;
         let _cachedCoin = &mut _storedContentOfPools._cachedCoin;
-        let swapId = MesonHelpers::getSwapId(encodedSwap, initiator);
-        assert!(table::contains(_lockedSwaps, swapId), ESWAP_NOT_EXISTS);
+        let _swapId = MesonHelpers::getSwapId(encoded, initiator);
+        assert!(table::contains(_lockedSwaps, lockHash), ESWAP_NOT_EXISTS);
 
         // Ensure that the `keyString` works.
         let calculateHash = aptos_hash::keccak256(keyString);
-        let expectedHash = MesonHelpers::hashValueFrom(encodedSwap);
-        assert!(calculateHash == expectedHash, EHASH_VALUE_NOT_MATCH);
+        assert!(calculateHash == lockHash, EHASH_VALUE_NOT_MATCH);
 
         // Assertion about time-lock.
-        let lockingValue = table::remove(_lockedSwaps, swapId);
-        let (until, _) = MesonHelpers::destructLocked(lockingValue);
+        let lockingValue = table::remove(_lockedSwaps, lockHash);
+        let (until, _poolOwner, recipient) = destructLocked(lockingValue);
         assert!(until > timestamp::now_seconds(), EALREADY_EXPIRED);
 
         // Release the coin.
-        let fetchedCoin = table::remove(_cachedCoin, swapId);
+        let fetchedCoin = table::remove(_cachedCoin, lockHash);
         coin::deposit<CoinType>(recipient, fetchedCoin);
         
         /* ============================ To be added ============================ */
