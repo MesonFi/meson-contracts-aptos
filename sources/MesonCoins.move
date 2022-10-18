@@ -31,6 +31,7 @@ module Meson::MesonCoins {
         let i = 0;
         while (i < vector::length(coinList)) {
             assert!(coinInfo != *vector::borrow(coinList, i), EALREADY_IN_COIN_LIST);
+            i = i + 1;
         };
         vector::push_back(coinList, coinInfo);
         vector::length(coinList)
