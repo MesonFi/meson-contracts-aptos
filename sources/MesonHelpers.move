@@ -62,7 +62,7 @@ module Meson::MesonHelpers {
         let i = 2;
         while (i < 6) {
             let byte = *vector::borrow(&encoded_swap, i);
-            amount = (amount << 1) + (byte as u64);
+            amount = (amount << 8) + (byte as u64);
             i = i + 1;
         };
         amount
@@ -78,7 +78,7 @@ module Meson::MesonHelpers {
         let i = 17;
         while (i < 21) {
             let byte = *vector::borrow(&encoded_swap, i);
-            fee = (fee << 1) + (byte as u64);
+            fee = (fee << 8) + (byte as u64);
             i = i + 1;
         };
         fee
@@ -129,7 +129,7 @@ module Meson::MesonHelpers {
         let i = 22;
         while (i < 26) {
             let byte = *vector::borrow(&encoded_swap, i);
-            expire_ts = (expire_ts << 1) + (byte as u64);
+            expire_ts = (expire_ts << 8) + (byte as u64);
             i = i + 1;
         };
         expire_ts
