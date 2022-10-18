@@ -22,6 +22,7 @@ module Meson::MesonPools {
     const EHASH_VALUE_NOT_MATCH: u64 = 8;
     const ESWAP_NOT_EXISTS: u64 = 9;
     const EALREADY_EXPIRED: u64 = 10;
+    const ESTILL_IN_LOCK: u64 = 11;
 
 
     struct StoredContentOfPools<phantom CoinType> has key {
@@ -107,6 +108,30 @@ module Meson::MesonPools {
 
         let lockingValue = newLockedSwap(until, poolOwner, recipient);
         table::add(_lockedSwaps, swap_id, lockingValue);
+    }
+
+
+    public entry fun unlock<CoinType>(
+        _signerAccount: &signer,
+        encoded_swap: vector<u8>,
+        initiator: vector<u8>,
+    ) acquires StoredContentOfPools {
+        assert!(vector::length(&encoded_swap) == 32, 1);
+        assert!(vector::length(&initiator) == 20, 1);
+
+        // Ensure that the swap exists
+        let swap_id = MesonHelpers::get_swap_id(encoded_swap, initiator);
+        let _storedContentOfPools = borrow_global_mut<StoredContentOfPools<CoinType>>(DEPLOYER);
+        let _lockedSwaps = &mut _storedContentOfPools._lockedSwaps;
+        let _cachedCoin = &mut _storedContentOfPools._cachedCoin;
+        assert!(table::contains(_lockedSwaps, swap_id), ESWAP_NOT_EXISTS);
+
+        let lockingValue = table::remove(_lockedSwaps, swap_id);
+        let (until, poolOwner, _) = destructLocked(lockingValue);
+        assert!(until < timestamp::now_seconds(), ESTILL_IN_LOCK);
+
+        let fetchedCoin = table::remove(_cachedCoin, swap_id);
+        MesonStates::addLiquidity<CoinType>(poolOwner, fetchedCoin);
     }
 
 

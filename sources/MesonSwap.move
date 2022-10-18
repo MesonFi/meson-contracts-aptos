@@ -21,7 +21,8 @@ module Meson::MesonSwap {
     const EHASH_VALUE_NOT_MATCH: u64 = 8;
     const ESWAP_NOT_EXISTS: u64 = 9;
     const EALREADY_EXPIRED: u64 = 10;
-    const ERECIPENT_NOT_MATCH: u64 = 11;
+    const ESTILL_IN_LOCK: u64 = 11;
+    const ERECIPENT_NOT_MATCH: u64 = 12;
 
     
     const EINVALID_ENCODED_LENGTH: u64 = 33;
@@ -104,8 +105,29 @@ module Meson::MesonSwap {
 
         let posting = newPostedSwap(signer::address_of(fromAccount), poolOwner, initiator);
         table::add(_postedSwaps, encoded_swap, posting);
-        table::add(_cachedCoin, encoded_swap , withdrewCoin);
+        table::add(_cachedCoin, encoded_swap, withdrewCoin);
     }
+
+
+    public entry fun cancelSwap<CoinType>(
+        _signerAccount: &signer, // signer could be anyone
+        encoded_swap: vector<u8>,
+    ) acquires StoredContentOfSwap {
+        let _storedContentOfSwap = borrow_global_mut<StoredContentOfSwap<CoinType>>(DEPLOYER);
+        let _postedSwaps = &mut _storedContentOfSwap._postedSwaps;
+        let _cachedCoin = &mut _storedContentOfSwap._cachedCoin;
+        assert!(table::contains(_postedSwaps, encoded_swap), ESWAP_NOT_EXISTS);
+
+        let expire_ts = MesonHelpers::expire_ts_from(encoded_swap);
+        assert!(expire_ts < timestamp::now_seconds(), ESTILL_IN_LOCK);
+
+        let posted = table::remove(_postedSwaps, encoded_swap);
+        let (fromAddress, _, _) = destructPosted(posted);
+
+        let fetchedCoin = table::remove(_cachedCoin, encoded_swap);
+        coin::deposit<CoinType>(fromAddress, fetchedCoin);
+    }
+
 
     public entry fun executeSwap<CoinType>(
         _signerAccount: &signer, // signer could be anyone
