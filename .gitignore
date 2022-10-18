@@ -1,6 +1,6 @@
 .DS_Store
 build
-scripts
 node_modules
-modify_official_examples
 *.log
+
+.aptos
