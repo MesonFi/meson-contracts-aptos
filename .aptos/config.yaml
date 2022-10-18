@@ -1,0 +1,7 @@
+---
+profiles:
+  default:
+    private_key: "0x4fe018818ab1eff1fe609da6ef3ab94ca6841ff84550ef28650a3cb37f4fc792"
+    public_key: "0x019f00ebb408300681e5c9e47c39dd2a0369b9101580c4d1bc1a1de1801a9994"
+    account: a2026f7394b8c486dcd189f18a5e2f7a13c458fdb04119a94abc1a9cb22c7fa1
+    rest_url: "https://fullnode.devnet.aptoslabs.com/v1"
