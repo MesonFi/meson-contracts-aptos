@@ -361,10 +361,10 @@
   resolved "https://npm.pkg.github.com/download/@MesonFi/contract-types/1.0.0/126882e1ada69af9e1d9087b23dad51c054e5dc6#126882e1ada69af9e1d9087b23dad51c054e5dc6"
   integrity sha512-1/I4PA/HTn0fGdlXUa+It/EYj4IM2ayz+hjIb4v0HosytymaF+EGv4mDr4EYxoJdsqHLO6SochqJsDxEPhQubA==
 
-"@mesonfi/sdk@^1.1.0-alpha.10":
-  version "1.1.0-alpha.10"
-  resolved "https://npm.pkg.github.com/download/@MesonFi/sdk/1.1.0-alpha.10/d858d1bd5aa4a6e37538b473916d6e3429cb1d6d#d858d1bd5aa4a6e37538b473916d6e3429cb1d6d"
-  integrity sha512-2m1BTqZYkBngb1xiYxKpCEl1TWifIm0BVkSplozbbVbKP/G8ITgvcoWZnoUQy2YlbOsyKU9dP/2T1zm8MPWPTA==
+"@mesonfi/sdk@^1.1.0-alpha.11":
+  version "1.1.0-alpha.11"
+  resolved "https://npm.pkg.github.com/download/@MesonFi/sdk/1.1.0-alpha.11/64b317a1606edd0ff212a5b03a5b83a28e1aebfd#64b317a1606edd0ff212a5b03a5b83a28e1aebfd"
+  integrity sha512-203sim0FcqYw1hF9OcNTJ6B8CxoG4dKjabpOCmFGjLD+hSpzZY1Y8zPn6Osh0kXXTmC94nVVVolk2g0n+SDICA==
   dependencies:
     "@mesonfi/contract-abis" "^1.0.0"
     "@mesonfi/contract-types" "^1.0.0"
