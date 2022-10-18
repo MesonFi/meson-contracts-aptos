@@ -1,6 +1,48 @@
-# meson-contracts-move
+# Meson Contract on Move
 
-## Deploy
+## Introducing Meson
+
+Meson (https://meson.fi) is the faster and safer way to execute low-cost, zero-slippage stablecoin **cross-chain swaps** across all leading blockchains and layer-2 rollups. As Aptos' mainnet launched on October, Meson is also preparing for launching on Aptos and other Move-based layer-1 blockchain, such as Sui and Starcoin.
+
+As shown in the figure below, Meson is now ready on Aptos Devnet!
+
+![image](./figure/Meson-Testnet-Support-Aptos.png)
+
+See [Introducing Meson : the boundless highway for cross-chain stablecoins swap
+](https://medium.com/@mesonfi/introducing-meson-the-boundless-freeway-for-cross-chain-stablecoins-movements-a30d07255519) to learn more about Meson. If you want to dive into the technical details, you can also read our documentation on [Meson Docs](https://docs.meson.fi/).
+
+<br/>
+
+
+
+## How To Use
+
+### For user
+
+If you wants to try using Meson on Aptos Devnet, enter [Meson Testnet App](https://meson-testnet.herokuapp.com/) to make a transaction and find it on the [Meson Testnet Explorer](https://testnet-explorer.meson.fi/).
+
+If you wants to use Meson on other EVM chains to swap your real stablecoin assets, enter [Meson App](https://meson.fi/) to make a transaction and find it on the [Meson Explorer](https://explorer.meson.fi/). Meson now supports 11 blockchains on mainnet.
+
+### For develpor
+
+Meson contracts on move contains the module below: 
+
+- `MesonCoins.move`: The contract about the supported stablecoins. We use `aptos_framework::coin::Coin<CoinType>` standard on Aptos to support stablecoins.
+
+- `MesonConfig.move`: The constant variables used in the contracts.
+
+- `MesonHelpers.move` & `MesonStates`: Contains some utils functions.
+
+- `MesonSourceChain.move`: The contract for cross-chain swaps when Aptos is the source chain. The main entry function is `postSwap` and `executeSwap`, which is the implementation of **Step 2 (Post and bond a swap)** and **Step 6 (Receive initial funds)** in [Meson Swap Process](https://docs.meson.fi/protocol/meson/process).
+
+- `MesonTargetChain.move`: The contract for cross-chain swaps when Aptos is the target chain. The main entry function is `lock` and `release`, which is the implementation of **Step 3 (Lock the swap)** and **Step 5 (Release fund)** in [Meson Swap Process](https://docs.meson.fi/protocol/meson/process).
+
+
+<br/>
+
+
+
+## Deploy on Aptos
 
 ### Install Move CLI and Aptos CLI
 
@@ -47,13 +89,13 @@ aptos_token = "0x3"
 Meson = "_"
 ``` 
 
-However, if you've already initialized the account and the account address is, for example, ```0x5566```, then you can replace the address in ```Move.toml``` by ```Meson = "0x5566"``` and directly run the command below:
+<!-- However, if you've already initialized the account and the account address is, for example, ```0x5566```, then you can replace the address in ```Move.toml``` by ```Meson = "0x5566"``` and directly run the command below:
 
 ```bash
 aptos move publish --package-dir <package-dir>
 ```
 
-See [Publish the HelloBlockchain module with the Aptos CLI](https://aptos.dev/tutorials/your-first-dapp/#publish-the-helloblockchain-module-with-the-aptos-cli) for more.
+See [Publish the HelloBlockchain module with the Aptos CLI](https://aptos.dev/tutorials/your-first-dapp/#publish-the-helloblockchain-module-with-the-aptos-cli) for more. -->
 
 <br/>
 
@@ -66,4 +108,4 @@ const packageMetadata = fs.readFileSync(path.join(modulePath, "build", "Examples
 const moduleData = fs.readFileSync(path.join(modulePath, "build", "Examples", "bytecode_modules", `${moduleName}.mv`));
 ```
 
-See [yourcoin.ts (Line 97~100)](https://github.com/aptos-labs/aptos-core/blob/main/ecosystem/typescript/sdk/examples/typescript/your_coin.ts#L97) for more.
+<!-- See [yourcoin.ts (Line 97~100)](https://github.com/aptos-labs/aptos-core/blob/main/ecosystem/typescript/sdk/examples/typescript/your_coin.ts#L97) for more. -->
