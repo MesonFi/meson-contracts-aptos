@@ -78,8 +78,8 @@ module Meson::MesonPools {
         signerAccount: &signer,
         encoded_swap: vector<u8>,
         recipient: address,
-        signature: vector<u8>,
-        initiator: vector<u8>
+        signature: vector<u8>, // must be signed by `initiator`
+        initiator: vector<u8>, // an eth address of (20 bytes), the signer to sign for release
     ) acquires StoredContentOfPools {
         assert!(vector::length(&encoded_swap) == 32, 1);
         assert!(vector::length(&initiator) == 20, 1);
@@ -115,7 +115,7 @@ module Meson::MesonPools {
         _signerAccount: &signer, // signer could be anyone
         encoded_swap: vector<u8>,
         signature: vector<u8>,
-        initiator: vector<u8>
+        initiator: vector<u8>,
     ) acquires StoredContentOfPools {
         assert!(vector::length(&encoded_swap) == 32, 1);
         assert!(vector::length(&initiator) == 20, 1);
@@ -131,7 +131,12 @@ module Meson::MesonPools {
         let (until, _poolOwner, recipient) = destructLocked(lockingValue);
         assert!(until > timestamp::now_seconds(), EALREADY_EXPIRED);
 
-        MesonHelpers::check_release_signature(encoded_swap, recipient, signature, initiator);
+        MesonHelpers::check_release_signature(
+            encoded_swap,
+            MesonHelpers::eth_address_from_aptos_address(recipient),
+            signature,
+            initiator
+        );
 
         // Release to recipient
         let fetchedCoin = table::remove(_cachedCoin, swap_id);

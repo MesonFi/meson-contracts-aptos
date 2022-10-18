@@ -29,6 +29,10 @@ module Meson::MesonHelpers {
         assert!(version_from(encoded_swap) == MESON_PROTOCOL_VERSION, 1);
     }
 
+    public(friend) fun for_initial_chain(encoded_swap: vector<u8>) {
+        assert!(in_chain_from(encoded_swap) == SHORT_COIN_TYPE, 1);
+    }
+
     public(friend) fun for_target_chain(encoded_swap: vector<u8>) {
         assert!(out_chain_from(encoded_swap) == SHORT_COIN_TYPE, 1);
     }
@@ -174,19 +178,14 @@ module Meson::MesonHelpers {
 
     public(friend) fun check_release_signature(
         encoded_swap: vector<u8>,
-        recipient: address,
+        recipient: vector<u8>,
         signature: vector<u8>,
-        signer_eth_addr: vector<u8>
+        signer_eth_addr: vector<u8>,
     ) {
         assert!(signer_eth_addr != x"", 1);
 
         let msg = copy encoded_swap;
-        let recipient_bytes = bcs::to_bytes(&recipient);
-        let i = 0;
-        while (i < 20) {
-            vector::push_back(&mut msg, *vector::borrow(&recipient_bytes, i));
-            i = i + 1;
-        };
+        vector::append(&mut msg, recipient);
         let msg_hash = aptos_hash::keccak256(msg);
 
         // TODO: How to store the hash as constant?
@@ -201,10 +200,28 @@ module Meson::MesonHelpers {
     #[test]
     fun test_check_release_signature() {
         let encoded_swap = x"01001dcd6500c00000000000f677815c000000000000634dcb98027d0102ca21";
-        let recipient = @0x01015ace920c716794445979be68d402d28b2805b7beaae935d7fe369fa7cfa0;
+        let recipient = x"01015ace920c716794445979be68d402d28b2805";
         let signature = x"1205361aabc89e5b30592a2c95592ddc127050610efe92ff6455c5cfd43bdd825853edcf1fa72f10992b46721d17cb3191a85cefd2f8325b1ac59c7d498fa212";
         let eth_addr = x"2ef8a51f8ff129dbb874a0efb021702f59c1b211";
         check_release_signature(encoded_swap, recipient, signature, eth_addr);
+    }
+
+    public(friend) fun eth_address_from_aptos_address(addr: address): vector<u8> {
+        let addr_bytes = bcs::to_bytes(&addr);
+        let eth_addr = vector::empty<u8>();
+        let i = 0;
+        while (i < 20) {
+            vector::push_back(&mut eth_addr, *vector::borrow(&addr_bytes, i));
+            i = i + 1;
+        };
+        eth_addr
+    }
+
+    #[test]
+    fun test_eth_address_from_aptos_address() {
+        let aptos_addr = @0x01015ace920c716794445979be68d402d28b2805b7beaae935d7fe369fa7cfa0;
+        let eth_addr = eth_address_from_aptos_address(aptos_addr);
+        assert!(eth_addr == x"01015ace920c716794445979be68d402d28b2805", 1);
     }
 
     public fun eth_address_from_pubkey(pk: vector<u8>): vector<u8> {

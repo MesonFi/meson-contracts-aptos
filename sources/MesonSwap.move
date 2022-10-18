@@ -1,11 +1,12 @@
+/// @title MesonSwap
+/// @notice The class to receive and process swap requests on the initial chain side.
+/// Methods in this class will be executed by swap initiators or LPs
+/// on the initial chain of swaps.
 module Meson::MesonSwap {
-    /* ---------------------------- References ---------------------------- */
-
     use std::vector;
     use std::table;
     use std::signer;
     use std::timestamp;
-    use std::aptos_hash;
     use aptos_framework::coin;
     use aptos_framework::coin::{Coin};
     use Meson::MesonConfig;
@@ -27,32 +28,26 @@ module Meson::MesonSwap {
     const EINVALID_ENCODED_DECODING_0: u64 = 35;
     const EINVALID_ENCODED_DECODING_1: u64 = 36;
 
-    /* ---------------------------- Struct & Constructor ---------------------------- */
-
-    // Contains all the related tables (mappings).
-    // Each unique coin has a related `StoredContentOfSwap`.
     struct StoredContentOfSwap<phantom CoinType> has key {
         _postedSwaps: table::Table<vector<u8>, PostedSwap>,
         _cachedCoin: table::Table<vector<u8>, Coin<CoinType>>,
     }
 
-    // `PostedSwap` is in format of `initiatorAddr:address|poolIndex:uint40` in solidity.
     struct PostedSwap has store {
-        initiatorAddr: address,
+        fromAddress: address,
         poolOwner: address,
+        initiator: vector<u8>,
     }
 
-    // Create a new `PostedSwap` instance
-    fun newPostedSwap(initiatorAddr: address, poolOwner: address): PostedSwap {
-        PostedSwap { initiatorAddr, poolOwner }
+    fun newPostedSwap(fromAddress: address, poolOwner: address, initiator: vector<u8>): PostedSwap {
+        PostedSwap { fromAddress, poolOwner, initiator }
     }
 
-    fun destructPosted(postingValue: PostedSwap): (address, address) {
-        let PostedSwap { initiatorAddr, poolOwner } = postingValue;
-        (initiatorAddr, poolOwner)
+    fun destructPosted(posted: PostedSwap): (address, address, vector<u8>) {
+        let PostedSwap { fromAddress, poolOwner, initiator } = posted;
+        (fromAddress, poolOwner, initiator)
     }
 
-    /* ---------------------------- Initialize ---------------------------- */
 
     public entry fun initializeTable<CoinType>(deployer: &signer) {
         let deployerAddress = signer::address_of(deployer);
@@ -64,88 +59,77 @@ module Meson::MesonSwap {
         move_to<StoredContentOfSwap<CoinType>>(deployer, newContent);
     }
 
-
-
-    /* ---------------------------- Main Function ---------------------------- */
-
-    // Step 1: postSwap
-    // `encoded` is in format of `amount:uint48|salt:uint80|fee:uint40|expireTs:uint40|outChain:uint16|outToken:uint8|inChain:uint16|inToken:uint8` in solidity.
+    /// `encoded_swap` in format of `version:uint8|amount:uint40|salt:uint80|fee:uint40|expireTs:uint40|outChain:uint16|outToken:uint8|inChain:uint16|inToken:uint8`
+    ///   version: Version of encoding
+    ///   amount: The amount of tokens of this swap, always in decimal 6. The amount of a swap is capped at $100k so it can be safely encoded in uint48;
+    ///   salt: The salt value of this swap, carrying some information below:
+    ///     salt & 0x80000000000000000000 == true => will release to an owa address, otherwise a smart contract;
+    ///     salt & 0x40000000000000000000 == true => will waive *service fee*;
+    ///     salt & 0x08000000000000000000 == true => use *non-typed signing* (some wallets such as hardware wallets don't support EIP-712v1);
+    ///     salt & 0x0000ffffffffffffffff: customized data that can be passed to integrated 3rd-party smart contract;
+    ///   fee: The fee given to LPs (liquidity providers). An extra service fee maybe charged afterwards;
+    ///   expireTs: The expiration time of this swap on the initial chain. The LP should `executeSwap` and receive his funds before `expireTs`;
+    ///   outChain: The target chain of a cross-chain swap (given by the last 2 bytes of SLIP-44);
+    ///   outToken: The index of the token on the target chain. See `tokenForIndex` in `MesonToken.sol`;
+    ///   inChain: The initial chain of a cross-chain swap (given by the last 2 bytes of SLIP-44);
+    ///   inToken: The index of the token on the initial chain. See `tokenForIndex` in `MesonToken.sol`.
     public entry fun postSwap<CoinType>(
-        initiatorAccount: &signer,
+        fromAccount: &signer,
         encoded_swap: vector<u8>,
+        signature: vector<u8>, // must be signed by `initiator`
+        initiator: vector<u8>, // an eth address of (20 bytes), the signer to sign for release
         poolOwner: address,
-        _lockHash: vector<u8>
     ) acquires StoredContentOfSwap {
         assert!(vector::length(&encoded_swap) == 32, EINVALID_ENCODED_LENGTH);
+        assert!(vector::length(&initiator) == 20, 1);
+        MesonHelpers::match_protocol_version(encoded_swap);
+        MesonHelpers::for_initial_chain(encoded_swap);
 
-        // Ensure that the `encoded` doesn't exist.
         let _storedContentOfSwap = borrow_global_mut<StoredContentOfSwap<CoinType>>(DEPLOYER);
         let _postedSwaps = &mut _storedContentOfSwap._postedSwaps;
         let _cachedCoin = &mut _storedContentOfSwap._cachedCoin;
         assert!(!table::contains(_postedSwaps, encoded_swap), ESWAP_ALREADY_EXISTS);
-        
+
+        let amount = MesonHelpers::amount_from(encoded_swap);
+        // TODO: assert amount <= MAX_SWAP_AMOUNT
+
         // Assertion about time-lock.
-        let expire_ts = MesonHelpers::expire_ts_from(encoded_swap);
-        let delta = expire_ts - timestamp::now_seconds();
+        let delta = MesonHelpers::expire_ts_from(encoded_swap) - timestamp::now_seconds();
         assert!(delta > MesonConfig::get_MIN_BOND_TIME_PERIOD(), EEXPIRE_TOO_EARLY);
         assert!(delta < MesonConfig::get_MAX_BOND_TIME_PERIOD(), EEXPIRE_TOO_LATE);
 
-        // Withdraw coin entity from the initiator.
-        let amount = MesonHelpers::amount_from(encoded_swap);
+        MesonHelpers::check_request_signature(encoded_swap, signature, initiator);
 
-        // If initiatorAccount is not the signer, can we withdraw coins from it?
-        let withdrewCoin = coin::withdraw<CoinType>(initiatorAccount, amount);
+        let withdrewCoin = coin::withdraw<CoinType>(fromAccount, amount);
 
-        // Store the `postingValue` in contract.
-        let postingValue = newPostedSwap(signer::address_of(initiatorAccount), poolOwner);
-        table::add(_postedSwaps, encoded_swap, postingValue);
+        let posting = newPostedSwap(signer::address_of(fromAccount), poolOwner, initiator);
+        table::add(_postedSwaps, encoded_swap, posting);
         table::add(_cachedCoin, encoded_swap , withdrewCoin);
-
-        /* ============================ To be added ============================ */
-        // Emit `postedSwap` event!
-        /* ===================================================================== */
     }
 
-
-    // Step 4. executeSwap
     public entry fun executeSwap<CoinType>(
         _signerAccount: &signer, // signer could be anyone
         encoded_swap: vector<u8>,
-        _initiator: vector<u8>, // this is used when check signature
-        _recipient: address, // this is used when check signature
-        keyString: vector<u8>,
-        lockHash: vector<u8>,
+        signature: vector<u8>,
+        recipient: vector<u8>,
         depositToPool: bool,
     ) acquires StoredContentOfSwap {
-        // Ensure that the transaction exists.
         let _storedContentOfSwap = borrow_global_mut<StoredContentOfSwap<CoinType>>(DEPLOYER);
         let _postedSwaps = &mut _storedContentOfSwap._postedSwaps;
         let _cachedCoin = &mut _storedContentOfSwap._cachedCoin;
         assert!(table::contains(_postedSwaps, encoded_swap), ESWAP_NOT_EXISTS);
 
-        let postingValue = table::remove(_postedSwaps, encoded_swap);
-        let (_initiatorAddr, poolOwner) = destructPosted(postingValue);
+        let posted = table::remove(_postedSwaps, encoded_swap);
+        // TODO: need to set a value in `_postedSwaps` to prevent double spending
+        let (_, poolOwner, initiator) = destructPosted(posted);
 
-        // Ensure that the `keyString` works.
-        let calculateHash = aptos_hash::keccak256(keyString);
-        assert!(calculateHash == lockHash, EHASH_VALUE_NOT_MATCH);
+        MesonHelpers::check_release_signature(encoded_swap, recipient, signature, initiator);
 
-        // Assertion about time-lock.
-        let expireTs = MesonHelpers::expire_ts_from(encoded_swap);
-        assert!(expireTs < timestamp::now_seconds() + MesonConfig::get_MIN_BOND_TIME_PERIOD(), EALREADY_EXPIRED);
-
-        // Release the coin.
         let fetchedCoin = table::remove(_cachedCoin, encoded_swap);
-
         if (depositToPool) {
             MesonStates::addLiquidity<CoinType>(poolOwner, fetchedCoin);
         } else {
             coin::deposit<CoinType>(poolOwner, fetchedCoin);
         }
-        
-        /* ============================ To be added ============================ */
-        // Emit `postedSwap` event!
-        /* ===================================================================== */
     }
-
 }
