@@ -32,8 +32,8 @@ module Meson::MesonSwap {
     // Contains all the related tables (mappings).
     // Each unique coin has a related `StoredContentOfSwap`.
     struct StoredContentOfSwap<phantom CoinType> has key {
-        _postedSwaps: table::Table<vector<u128>, PostedSwap>,
-        _cachedCoin: table::Table<vector<u128>, Coin<CoinType>>,
+        _postedSwaps: table::Table<vector<u8>, PostedSwap>,
+        _cachedCoin: table::Table<vector<u8>, Coin<CoinType>>,
     }
 
     // `PostedSwap` is in format of `initiatorAddr:address|poolIndex:uint40` in solidity.
@@ -58,8 +58,8 @@ module Meson::MesonSwap {
         let deployerAddress = signer::address_of(deployer);
         assert!(deployerAddress == DEPLOYER, ENOT_DEPLOYER);
         let newContent = StoredContentOfSwap<CoinType> {
-            _postedSwaps: table::new<vector<u128>, PostedSwap>(),
-            _cachedCoin: table::new<vector<u128>, Coin<CoinType>>(),
+            _postedSwaps: table::new<vector<u8>, PostedSwap>(),
+            _cachedCoin: table::new<vector<u8>, Coin<CoinType>>(),
         };
         move_to<StoredContentOfSwap<CoinType>>(deployer, newContent);
     }
@@ -72,34 +72,34 @@ module Meson::MesonSwap {
     // `encoded` is in format of `amount:uint48|salt:uint80|fee:uint40|expireTs:uint40|outChain:uint16|outToken:uint8|inChain:uint16|inToken:uint8` in solidity.
     public entry fun postSwap<CoinType>(
         initiatorAccount: &signer,
-        encoded: vector<u128>,
+        encoded_swap: vector<u8>,
         poolOwner: address,
         _lockHash: vector<u8>
     ) acquires StoredContentOfSwap {
-        assert!(vector::length(&encoded) == 2, EINVALID_ENCODED_LENGTH);
+        assert!(vector::length(&encoded_swap) == 32, EINVALID_ENCODED_LENGTH);
 
         // Ensure that the `encoded` doesn't exist.
         let _storedContentOfSwap = borrow_global_mut<StoredContentOfSwap<CoinType>>(DEPLOYER);
         let _postedSwaps = &mut _storedContentOfSwap._postedSwaps;
         let _cachedCoin = &mut _storedContentOfSwap._cachedCoin;
-        assert!(!table::contains(_postedSwaps, encoded), ESWAP_ALREADY_EXISTS);
+        assert!(!table::contains(_postedSwaps, encoded_swap), ESWAP_ALREADY_EXISTS);
         
         // Assertion about time-lock.
-        let expireTs = MesonHelpers::expireTsFrom(encoded);
-        let delta = expireTs - timestamp::now_seconds();
+        let expire_ts = MesonHelpers::expire_ts_from(encoded_swap);
+        let delta = expire_ts - timestamp::now_seconds();
         assert!(delta > MesonConfig::get_MIN_BOND_TIME_PERIOD(), EEXPIRE_TOO_EARLY);
         assert!(delta < MesonConfig::get_MAX_BOND_TIME_PERIOD(), EEXPIRE_TOO_LATE);
 
         // Withdraw coin entity from the initiator.
-        let amount = MesonHelpers::amountFrom(encoded);
+        let amount = MesonHelpers::amount_from(encoded_swap);
 
         // If initiatorAccount is not the signer, can we withdraw coins from it?
         let withdrewCoin = coin::withdraw<CoinType>(initiatorAccount, amount);
 
         // Store the `postingValue` in contract.
         let postingValue = newPostedSwap(signer::address_of(initiatorAccount), poolOwner);
-        table::add(_postedSwaps, encoded, postingValue);
-        table::add(_cachedCoin, encoded , withdrewCoin);
+        table::add(_postedSwaps, encoded_swap, postingValue);
+        table::add(_cachedCoin, encoded_swap , withdrewCoin);
 
         /* ============================ To be added ============================ */
         // Emit `postedSwap` event!
@@ -110,7 +110,7 @@ module Meson::MesonSwap {
     // Step 4. executeSwap
     public entry fun executeSwap<CoinType>(
         _signerAccount: &signer, // signer could be anyone
-        encoded: vector<u128>,
+        encoded_swap: vector<u8>,
         _initiator: vector<u8>, // this is used when check signature
         _recipient: address, // this is used when check signature
         keyString: vector<u8>,
@@ -121,9 +121,9 @@ module Meson::MesonSwap {
         let _storedContentOfSwap = borrow_global_mut<StoredContentOfSwap<CoinType>>(DEPLOYER);
         let _postedSwaps = &mut _storedContentOfSwap._postedSwaps;
         let _cachedCoin = &mut _storedContentOfSwap._cachedCoin;
-        assert!(table::contains(_postedSwaps, encoded), ESWAP_NOT_EXISTS);
+        assert!(table::contains(_postedSwaps, encoded_swap), ESWAP_NOT_EXISTS);
 
-        let postingValue = table::remove(_postedSwaps, encoded);
+        let postingValue = table::remove(_postedSwaps, encoded_swap);
         let (_initiatorAddr, poolOwner) = destructPosted(postingValue);
 
         // Ensure that the `keyString` works.
@@ -131,11 +131,11 @@ module Meson::MesonSwap {
         assert!(calculateHash == lockHash, EHASH_VALUE_NOT_MATCH);
 
         // Assertion about time-lock.
-        let expireTs = MesonHelpers::expireTsFrom(encoded);
+        let expireTs = MesonHelpers::expire_ts_from(encoded_swap);
         assert!(expireTs < timestamp::now_seconds() + MesonConfig::get_MIN_BOND_TIME_PERIOD(), EALREADY_EXPIRED);
 
         // Release the coin.
-        let fetchedCoin = table::remove(_cachedCoin, encoded);
+        let fetchedCoin = table::remove(_cachedCoin, encoded_swap);
 
         if (depositToPool) {
             MesonStates::addLiquidity<CoinType>(poolOwner, fetchedCoin);
