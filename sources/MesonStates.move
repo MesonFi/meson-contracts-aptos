@@ -22,17 +22,17 @@ module Meson::MesonStates {
     friend Meson::MesonPools;
 
     struct GeneralStore has key {
-        supported_coins: table::Table<u8, type_info::TypeInfo>, // coin_index => CoinType
-        pool_owners: table::Table<u64, address>, // pool_index => owner_addr
-        pool_of_authorized_addr: table::Table<address, u64>, // authorized_addr => pool_index
-        posted_swaps: table::Table<vector<u8>, PostedSwap>, // swap_id => posted_swap
-        locked_swaps: table::Table<vector<u8>, LockedSwap>, // swap_id => locked_swap
+        supported_coins: table::Table<u8, type_info::TypeInfo>,     // coin_index => CoinType
+        pool_owners: table::Table<u64, address>,                    // pool_index => owner_addr
+        pool_of_authorized_addr: table::Table<address, u64>,        // authorized_addr => pool_index
+        posted_swaps: table::Table<vector<u8>, PostedSwap>,         // swap_id => posted_swap
+        locked_swaps: table::Table<vector<u8>, LockedSwap>,         // swap_id => locked_swap
     }
 
     // Contains all the related tables (mappings).
     struct StoreForCoin<phantom CoinType> has key {
-        in_pool_coins: table::Table<u64, Coin<CoinType>>, // pool_index => Coins
-        pending_coins: table::Table<vector<u8>, Coin<CoinType>>, // swap_id => Coins
+        in_pool_coins: table::Table<u64, Coin<CoinType>>,           // pool_index => Coins
+        pending_coins: table::Table<vector<u8>, Coin<CoinType>>,    // swap_id => Coins
     }
 
     struct PostedSwap has store {

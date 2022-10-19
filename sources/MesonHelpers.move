@@ -33,6 +33,17 @@ module Meson::MesonHelpers {
     // const REQUEST_TYPE_HASH: vector<u8> = aptos_hash::keccak256(b"bytes32 Sign to request a swap on Meson (Testnet)");
     // const RELEASE_TYPE_HASH: vector<u8> = aptos_hash::keccak256(b"bytes32 Sign to release a swap on Meson (Testnet)address Recipient");
 
+    public fun get_MIN_BOND_TIME_PERIOD(): u64 {
+        MIN_BOND_TIME_PERIOD
+    }
+
+    public fun get_MAX_BOND_TIME_PERIOD(): u64 {
+        MAX_BOND_TIME_PERIOD
+    }
+
+    public fun get_LOCK_TIME_PERIOD(): u64 {
+        LOCK_TIME_PERIOD
+    }
 
     public(friend) fun match_protocol_version(encoded_swap: vector<u8>) {
         assert!(version_from(encoded_swap) == MESON_PROTOCOL_VERSION, 1);
@@ -50,6 +61,11 @@ module Meson::MesonHelpers {
         let buf = copy encoded_swap;
         vector::append(&mut buf, initiator);
         aptos_hash::keccak256(buf)
+    }
+
+    public(friend) fun is_encoded_valid(encoded_swap: vector<u8>) {
+        assert!(vector::length(&encoded_swap) == 32, EINVALID_ENCODED_LENGTH);
+        match_protocol_version(encoded_swap)
     }
 
     #[test]
@@ -169,19 +185,6 @@ module Meson::MesonHelpers {
     // source coin index: `01|001dcd6500|c00000000000f677815c|0000000000|00634dcb98|027d0102ca[21]`
     public(friend) fun in_coin_index_from(encoded_swap: vector<u8>): u8 {
         *vector::borrow(&encoded_swap, 31)
-    }
-
-
-    public fun get_MIN_BOND_TIME_PERIOD(): u64 {
-        MIN_BOND_TIME_PERIOD
-    }
-
-    public fun get_MAX_BOND_TIME_PERIOD(): u64 {
-        MAX_BOND_TIME_PERIOD
-    }
-
-    public fun get_LOCK_TIME_PERIOD(): u64 {
-        LOCK_TIME_PERIOD
     }
 
 
