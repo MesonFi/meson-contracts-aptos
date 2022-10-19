@@ -223,7 +223,7 @@ module Meson::MesonHelpers {
     }
 
     #[test]
-    #[expected_failure(abort_code=35)]
+    #[expected_failure(abort_code=10)]
     fun test_check_request_signature_error() {
         let encoded_swap = x"01001dcd6500c00000000000f677815c000000000000634dcb98027d0102ca21";
         let signature = x"b3184c257cf973069250eefd849a74d27250f8343cbda7615191149dd3c1b61d5d4e2b5ecc76a59baabf10a8d5d116edb95a5b2055b9b19f71524096975b29c3";

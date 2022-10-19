@@ -116,7 +116,7 @@ module Meson::MesonPools {
 
         let waived = MesonHelpers::fee_waived(encoded_swap);
         if (waived) {
-            assert_is_premium_manager(signer::address_of(account));
+            MesonStates::assert_is_premium_manager(signer::address_of(account));
         };
 
         let swap_id = MesonHelpers::get_swap_id(encoded_swap, initiator);
