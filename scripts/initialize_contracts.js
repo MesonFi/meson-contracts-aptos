@@ -3,6 +3,7 @@ const fs = require('fs')
 const path = require('path')
 const { AptosClient } = require('aptos')
 const { adaptor } = require('@mesonfi/sdk')
+const { testnets } = require('@mesonfi/presets')
 
 dotenv.config()
 
@@ -38,17 +39,7 @@ async function initialize() {
   console.log(`initialize: ${tx.hash}`)
   await tx.wait()
 
-  const coins = [
-    {
-      addr: '0x01015ace920c716794445979be68d402d28b2805b7beaae935d7fe369fa7cfa0::aUSDC::TypeUSDC',
-      tokenIndex: 1
-    },
-    {
-      addr: '0xaaefd8848cb707617bf82894e2d7af6214b3f3a8e3fc32e91bc026f05f5b10bb::aUSDT::TypeUSDT',
-      tokenIndex: 2
-    }
-  ]
-
+  const coins = testnets.find(n => n.id.startsWith('aptos')).tokens
   for (const coin of coins) {
     const tx = await wallet.sendTransaction({
       function: `${address}::MesonStates::addSupportToken`,
