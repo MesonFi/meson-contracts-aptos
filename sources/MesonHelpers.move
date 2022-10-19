@@ -13,9 +13,16 @@ module Meson::MesonHelpers {
     const DEPLOYER: address = @Meson;
     const ENOT_DEPLOYER: u64 = 0;
     const ESWAP_ALREADY_EXISTS: u64 = 2;
+    const EINVALID_ENCODED_LENGTH: u64 = 33;
+    const EINVALID_ETH_ADDRESS: u64 = 34;
+    const EINVALID_SIGNATURE: u64 = 35;
 
     const MESON_PROTOCOL_VERSION: u8 = 1;
-    const SHORT_COIN_TYPE: vector<u8> = x"027d";
+    const SHORT_COIN_TYPE: vector<u8> = x"027d"; // See https://github.com/satoshilabs/slips/blob/master/slip-0044.md
+
+    const MIN_BOND_TIME_PERIOD: u64 = 3600;     // 1 hour
+    const MAX_BOND_TIME_PERIOD: u64 = 7200;     // 2 hours
+    const LOCK_TIME_PERIOD: u64 = 2400;         // 40 minutes
 
     const REQUEST_TYPE: vector<u8> = b"bytes32 Sign to request a swap on Meson (Testnet)";
     const RELEASE_TYPE: vector<u8> = b"bytes32 Sign to release a swap on Meson (Testnet)address Recipient";
@@ -24,6 +31,10 @@ module Meson::MesonHelpers {
     // const REQUEST_TYPE_HASH: vector<u8> = aptos_hash::keccak256(b"bytes32 Sign to request a swap on Meson (Testnet)");
     // const RELEASE_TYPE_HASH: vector<u8> = aptos_hash::keccak256(b"bytes32 Sign to release a swap on Meson (Testnet)address Recipient");
 
+    public(friend) fun is_encoded_valid(encoded_swap: vector<u8>) {
+        assert!(vector::length(&encoded_swap) == 32, EINVALID_ENCODED_LENGTH);
+        match_protocol_version(encoded_swap)
+    }
 
     public(friend) fun match_protocol_version(encoded_swap: vector<u8>) {
         assert!(version_from(encoded_swap) == MESON_PROTOCOL_VERSION, 1);
@@ -139,7 +150,7 @@ module Meson::MesonHelpers {
         vector[*vector::borrow(&encoded_swap, 29), *vector::borrow(&encoded_swap, 30)]
     }
 
-    public(friend) fun in_token_index_from(encoded_swap: vector<u8>): u8 {
+    public(friend) fun in_coin_index_from(encoded_swap: vector<u8>): u8 {
         *vector::borrow(&encoded_swap, 31)
     }
 
@@ -147,10 +158,22 @@ module Meson::MesonHelpers {
         vector[*vector::borrow(&encoded_swap, 26), *vector::borrow(&encoded_swap, 27)]
     }
 
-    public(friend) fun out_token_index_from(encoded_swap: vector<u8>): u8 {
+    public(friend) fun out_coin_index_from(encoded_swap: vector<u8>): u8 {
         *vector::borrow(&encoded_swap, 28)
     }
 
+
+    public fun get_MIN_BOND_TIME_PERIOD(): u64 {
+        MIN_BOND_TIME_PERIOD
+    }
+
+    public fun get_MAX_BOND_TIME_PERIOD(): u64 {
+        MAX_BOND_TIME_PERIOD
+    }
+
+    public fun get_LOCK_TIME_PERIOD(): u64 {
+        LOCK_TIME_PERIOD
+    }
 
 
     public(friend) fun check_request_signature(
@@ -158,7 +181,7 @@ module Meson::MesonHelpers {
         signature: vector<u8>,
         signer_eth_addr: vector<u8>
     ) {
-        assert!(signer_eth_addr != x"", 1);
+        is_eth_addr(signer_eth_addr);
 
         let msg_hash = aptos_hash::keccak256(encoded_swap);
 
@@ -168,7 +191,7 @@ module Meson::MesonHelpers {
         let digest = aptos_hash::keccak256(with_header);
 
         let recovered = recover_eth_address(digest, signature);
-        assert!(recovered == signer_eth_addr, 1);
+        assert!(recovered == signer_eth_addr, EINVALID_SIGNATURE);
     }
 
     #[test]
@@ -185,7 +208,7 @@ module Meson::MesonHelpers {
         signature: vector<u8>,
         signer_eth_addr: vector<u8>,
     ) {
-        assert!(signer_eth_addr != x"", 1);
+        is_eth_addr(signer_eth_addr);
 
         let msg = copy encoded_swap;
         vector::append(&mut msg, recipient);
@@ -197,7 +220,7 @@ module Meson::MesonHelpers {
         let digest = aptos_hash::keccak256(with_header);
 
         let recovered = recover_eth_address(digest, signature);
-        assert!(recovered == signer_eth_addr, 1);
+        assert!(recovered == signer_eth_addr, EINVALID_SIGNATURE);
     }
 
     #[test]
@@ -207,6 +230,10 @@ module Meson::MesonHelpers {
         let signature = x"1205361aabc89e5b30592a2c95592ddc127050610efe92ff6455c5cfd43bdd825853edcf1fa72f10992b46721d17cb3191a85cefd2f8325b1ac59c7d498fa212";
         let eth_addr = x"2ef8a51f8ff129dbb874a0efb021702f59c1b211";
         check_release_signature(encoded_swap, recipient, signature, eth_addr);
+    }
+
+    public(friend) fun is_eth_addr(addr: vector<u8>) {
+        assert!(vector::length(&addr) == 20, EINVALID_ETH_ADDRESS);
     }
 
     public(friend) fun eth_address_from_aptos_address(addr: address): vector<u8> {

@@ -1,12 +1,11 @@
 [package]
 name = "Meson-Contracts-Move"
 version = "0.1.0"
+upgrade_policy = "compatible"
 
 [dependencies]
 AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework", rev = "main" }
-AptosToken = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-token", rev = "main" }
 
 [addresses]
 std = "0x1"
-aptos_token = "0x3"
 Meson = "0xa2026f7394b8c486dcd189f18a5e2f7a13c458fdb04119a94abc1a9cb22c7fa1"

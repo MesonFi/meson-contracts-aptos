@@ -32,29 +32,35 @@ async function initialize() {
   }
 
   const meson = adaptor.getContract(address, Meson.abi, wallet)
-  const { tokens } = await meson.getSupportedTokens()
+  const { tokens: coins } = await meson.getSupportedTokens() // Named consistently with solidity contracts
+  
+  const tx = await wallet.sendTransaction({
+    function: `${address}::MesonStates::initialize`,
+    type_arguments: [],
+    arguments: []
+  })
+  console.log(`initialize: ${tx.hash}`)
+  await tx.wait()
 
-  for (const module of ['MesonPools', 'MesonSwap', 'MesonStates']) {
-    for (const token of tokens) {
-      const tx = await wallet.sendTransaction({
-        function: `${address}::${module}::initializeTable`,
-        type_arguments: [token],
-        arguments: []
-      })
-      console.log(`${module}::initializeTable (${token.split('::')[1]}): ${tx.hash}`)
-      await tx.wait()
-    }
+  for (const coin of coins) {
+    const tx = await wallet.sendTransaction({
+      function: `${address}::MesonStates::add_support_coin`,
+      type_arguments: [coin],
+      arguments: []
+    })
+    console.log(`add_support_coin (${coin.split('::')[1]}): ${tx.hash}`)
+    await tx.wait()
   }
 
   if (APTOS_LP_PRIVATE_KEY && AMOUNT_TO_DEPOSIT) {
     const lp = adaptor.getWallet(APTOS_LP_PRIVATE_KEY, client)
-    for (const token of tokens) {
+    for (const coin of coins) {
       const tx = await lp.sendTransaction({
-        function: `${address}::MesonPools::depositAndRegister`,
-        type_arguments: [token],
-        arguments: [BigInt(AMOUNT_TO_DEPOSIT)]
+        function: `${address}::MesonPools::deposit_and_register`,
+        type_arguments: [coin],
+        arguments: [BigInt(AMOUNT_TO_DEPOSIT), 1]
       })
-      console.log(`depositAndRegister (${token.split('::')[1]}): ${tx.hash}`)
+      console.log(`depositAndRegister (${coin.split('::')[1]}): ${tx.hash}`)
       await tx.wait()
     }
   }
