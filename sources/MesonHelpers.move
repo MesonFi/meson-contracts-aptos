@@ -15,9 +15,11 @@ module Meson::MesonHelpers {
     const EINVALID_ENCODED_LENGTH: u64 = 33;
     const EINVALID_ETH_ADDRESS: u64 = 34;
     const EINVALID_SIGNATURE: u64 = 35;
+    const ESWAP_AMOUNT_OVER_MAX: u64 = 36;
 
     const MESON_PROTOCOL_VERSION: u8 = 1;
     const SHORT_COIN_TYPE: vector<u8> = x"027d"; // See https://github.com/satoshilabs/slips/blob/master/slip-0044.md
+    const MAX_SWAP_AMOUNT: u64 = 100000000000; // 100,000.000000 = 100k
 
     const MIN_BOND_TIME_PERIOD: u64 = 3600;     // 1 hour
     const MAX_BOND_TIME_PERIOD: u64 = 7200;     // 2 hours
@@ -90,6 +92,10 @@ module Meson::MesonHelpers {
             i = i + 1;
         };
         amount
+    }
+
+    public(friend) fun assert_amount_within_max(amount: u64) {
+        assert!(amount <= MAX_SWAP_AMOUNT, ESWAP_AMOUNT_OVER_MAX);
     }
 
     // service fee: Default to 0.1% of amount

@@ -42,7 +42,7 @@ module Meson::MesonSwap {
         MesonHelpers::is_eth_addr(initiator);
 
         let amount = MesonHelpers::amount_from(encoded_swap);
-        // TODO: assert amount <= MAX_SWAP_AMOUNT
+        MesonHelpers::assert_amount_within_max(amount);
 
         // Assertion about time-lock.
         let delta = MesonHelpers::expire_ts_from(encoded_swap) - timestamp::now_seconds();
