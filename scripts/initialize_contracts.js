@@ -55,14 +55,10 @@ async function initialize() {
     let registered = false
     for (const coin of coins) {
       const func = registered ? 'deposit' : 'depositAndRegister'
-      const arguments = [BigInt(AMOUNT_TO_DEPOSIT)]
-      if (!registered) {
-        arguments.push(1)
-      }
       const tx = await lp.sendTransaction({
         function: `${address}::MesonPools::${func}`,
         type_arguments: [coin.addr],
-        arguments
+        arguments: [BigInt(AMOUNT_TO_DEPOSIT), 1],
       })
       console.log(`${func} (${coin.addr.split('::')[1]}): ${tx.hash}`)
       await tx.wait()
