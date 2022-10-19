@@ -12,11 +12,12 @@ module Meson::MesonStates {
     const ECOIN_TYPE_ERROR: u64 = 5;
     const ESWAP_NOT_EXISTS: u64 = 9;
 
-    const EPOOL_NOT_REGISTERED: u64 = 16;
-    const EPOOL_ALREADY_REGISTERED: u64 = 17;
-    const EPOOL_ADDR_NOT_AUTHORIZED: u64 = 18;
-    const EPOOL_ADDR_ALREADY_AUTHORIZED: u64 = 19;
-    const EPOOL_NOT_POOL_OWNER: u64 = 20;
+    const EPOOL_INDEX_CANNOT_BE_ZERO: u64 = 16;
+    const EPOOL_NOT_REGISTERED: u64 = 17;
+    const EPOOL_ALREADY_REGISTERED: u64 = 18;
+    const EPOOL_ADDR_NOT_AUTHORIZED: u64 = 19;
+    const EPOOL_ADDR_ALREADY_AUTHORIZED: u64 = 20;
+    const EPOOL_NOT_POOL_OWNER: u64 = 21;
 
     friend Meson::MesonSwap;
     friend Meson::MesonPools;
@@ -110,6 +111,7 @@ module Meson::MesonStates {
     }
 
     public(friend) fun register_pool_index(pool_index: u64, owner_addr: address) acquires GeneralStore {
+        assert!(pool_index != 0, EPOOL_INDEX_CANNOT_BE_ZERO);
         let store = borrow_global_mut<GeneralStore>(DEPLOYER);
         assert!(!table::contains(&store.pool_owners, pool_index), EPOOL_ALREADY_REGISTERED);
         assert!(!table::contains(&store.pool_of_authorized_addr, owner_addr), EPOOL_ADDR_ALREADY_AUTHORIZED);
