@@ -17,22 +17,24 @@ module Meson::MesonPools {
 
     // Named consistently with solidity contracts
     public entry fun depositAndRegister<CoinType>(account: &signer, amount: u64, pool_index: u64) {
-        MesonStates::register_pool_index(pool_index, signer::address_of(account));
-        let coins = coin::withdraw<CoinType>(account, amount);
-        MesonStates::coins_to_pool<CoinType>(pool_index, coins);
-    }
-
-    // Named consistently with solidity contracts
-    public entry fun deposit<CoinType>(account: &signer, amount: u64) {
-        let pool_index = MesonStates::pool_index_of(signer::address_of(account));
-        let coins = coin::withdraw<CoinType>(account, amount);
-        MesonStates::coins_to_pool<CoinType>(pool_index, coins);
-    }
-
-    // Named consistently with solidity contracts
-    public entry fun withdraw<CoinType>(account: &signer, amount: u64) {
         let account_address = signer::address_of(account);
-        let pool_index = MesonStates::pool_index_if_owner(signer::address_of(account));
+        MesonStates::register_pool_index(pool_index, account_address);
+        let coins = coin::withdraw<CoinType>(account, amount);
+        MesonStates::coins_to_pool<CoinType>(pool_index, coins);
+    }
+
+    // Named consistently with solidity contracts
+    public entry fun deposit<CoinType>(account: &signer, amount: u64, pool_index: u64) {
+        let account_address = signer::address_of(account);
+        assert!(pool_index == MesonStates::pool_index_of(account_address), 1);
+        let coins = coin::withdraw<CoinType>(account, amount);
+        MesonStates::coins_to_pool<CoinType>(pool_index, coins);
+    }
+
+    // Named consistently with solidity contracts
+    public entry fun withdraw<CoinType>(account: &signer, amount: u64, pool_index: u64) {
+        let account_address = signer::address_of(account);
+        assert!(pool_index == MesonStates::pool_index_if_owner(account_address), 1);
         let coins = MesonStates::coins_from_pool<CoinType>(pool_index, amount);
         coin::deposit<CoinType>(account_address, coins);
     }
