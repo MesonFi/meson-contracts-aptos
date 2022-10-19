@@ -15,27 +15,31 @@ module Meson::MesonPools {
     const ESTILL_IN_LOCK: u64 = 11;
 
 
-    public entry fun deposit_and_register<CoinType>(account: &signer, amount: u64, _pool_index: u64) {
-        let pool_index = MesonStates::pool_index_of(signer::address_of(account));
+    // Named consistently with solidity contracts
+    public entry fun depositAndRegister<CoinType>(account: &signer, amount: u64, pool_index: u64) {
+        MesonStates::register_pool_index(pool_index, signer::address_of(account));
         let coins = coin::withdraw<CoinType>(account, amount);
         MesonStates::coins_to_pool<CoinType>(pool_index, coins);
     }
 
+    // Named consistently with solidity contracts
     public entry fun deposit<CoinType>(account: &signer, amount: u64) {
         let pool_index = MesonStates::pool_index_of(signer::address_of(account));
         let coins = coin::withdraw<CoinType>(account, amount);
         MesonStates::coins_to_pool<CoinType>(pool_index, coins);
     }
 
+    // Named consistently with solidity contracts
     public entry fun withdraw<CoinType>(account: &signer, amount: u64) {
         let account_address = signer::address_of(account);
-        let pool_index = MesonStates::pool_index_of(account_address);
+        let pool_index = MesonStates::pool_index_if_owner(signer::address_of(account));
         let coins = MesonStates::coins_from_pool<CoinType>(pool_index, amount);
         coin::deposit<CoinType>(account_address, coins);
     }
 
 
     // Step 2: Lock
+    // Named consistently with solidity contracts
     public entry fun lock<CoinType>(
         account: &signer,
         encoded_swap: vector<u8>,
@@ -62,6 +66,7 @@ module Meson::MesonPools {
     }
 
 
+    // Named consistently with solidity contracts
     public entry fun unlock<CoinType>(
         _account: &signer,
         encoded_swap: vector<u8>,
@@ -79,6 +84,7 @@ module Meson::MesonPools {
 
 
     // Step 3: Release
+    // Named consistently with solidity contracts
     public entry fun release<CoinType>(
         _account: &signer, // signer could be anyone
         encoded_swap: vector<u8>,

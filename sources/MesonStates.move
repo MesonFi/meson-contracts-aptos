@@ -10,8 +10,13 @@ module Meson::MesonStates {
     const EALREADY_IN_COIN_LIST: u64 = 1;
     const ESWAP_ALREADY_EXISTS: u64 = 2;
     const ECOIN_TYPE_ERROR: u64 = 5;
-    const ELP_POOL_NOT_EXISTS: u64 = 7;
     const ESWAP_NOT_EXISTS: u64 = 9;
+
+    const EPOOL_NOT_REGISTERED: u64 = 16;
+    const EPOOL_ALREADY_REGISTERED: u64 = 17;
+    const EPOOL_ADDR_NOT_AUTHORIZED: u64 = 18;
+    const EPOOL_ADDR_ALREADY_AUTHORIZED: u64 = 19;
+    const EPOOL_NOT_POOL_OWNER: u64 = 20;
 
     friend Meson::MesonSwap;
     friend Meson::MesonPools;
@@ -25,7 +30,7 @@ module Meson::MesonStates {
     }
 
     // Contains all the related tables (mappings).
-    struct StoreForCoins<phantom CoinType> has key {
+    struct StoreForCoin<phantom CoinType> has key {
         in_pool_coins: table::Table<u64, Coin<CoinType>>, // pool_index => Coins
         pending_coins: table::Table<vector<u8>, Coin<CoinType>>, // swap_id => Coins
     }
@@ -55,7 +60,8 @@ module Meson::MesonStates {
         move_to<GeneralStore>(deployer, store);
     }
 
-    public entry fun add_support_coin<CoinType>(
+    // Named consistently with solidity contracts
+    public entry fun addSupportToken<CoinType>(
         signer_account: &signer,
         coin_index: u8,
     ) acquires GeneralStore {
@@ -67,15 +73,15 @@ module Meson::MesonStates {
         assert!(!table::contains(supported_coins, coin_index), 1);
         table::add(supported_coins, coin_index, type_info::type_of<CoinType>());
 
-        let coin_store = StoreForCoins<CoinType> {
+        let coin_store = StoreForCoin<CoinType> {
             in_pool_coins: table::new<u64, Coin<CoinType>>(),
             pending_coins: table::new<vector<u8>, Coin<CoinType>>(),
         };
-        move_to<StoreForCoins<CoinType>>(signer_account, coin_store);
+        move_to<StoreForCoin<CoinType>>(signer_account, coin_store);
     }
 
-    public fun coin_type_for_index(coin_index: u8): type_info::TypeInfo acquires GeneralStore {
-        let store = borrow_global_mut<GeneralStore>(DEPLOYER);
+    public(friend) fun coin_type_for_index(coin_index: u8): type_info::TypeInfo acquires GeneralStore {
+        let store = borrow_global<GeneralStore>(DEPLOYER);
         *table::borrow(&store.supported_coins, coin_index)
     }
 
@@ -92,14 +98,29 @@ module Meson::MesonStates {
     }
 
     public(friend) fun owner_of_pool(pool_index: u64): address acquires GeneralStore {
-        let store = borrow_global_mut<GeneralStore>(DEPLOYER);
-        *table::borrow(&store.pool_owners, pool_index)
+        let pool_owners = &borrow_global<GeneralStore>(DEPLOYER).pool_owners;
+        assert!(table::contains(pool_owners, pool_index), EPOOL_NOT_REGISTERED);
+        *table::borrow(pool_owners, pool_index)
     }
 
     public(friend) fun pool_index_of(authorized_addr: address): u64 acquires GeneralStore {
-        let pool_of_authorized_addr = &borrow_global_mut<GeneralStore>(DEPLOYER).pool_of_authorized_addr;
-        assert!(table::contains(pool_of_authorized_addr, authorized_addr), ELP_POOL_NOT_EXISTS);
+        let pool_of_authorized_addr = &borrow_global<GeneralStore>(DEPLOYER).pool_of_authorized_addr;
+        assert!(table::contains(pool_of_authorized_addr, authorized_addr), EPOOL_ADDR_NOT_AUTHORIZED);
         *table::borrow(pool_of_authorized_addr, authorized_addr)
+    }
+
+    public(friend) fun register_pool_index(pool_index: u64, owner_addr: address) acquires GeneralStore {
+        let store = borrow_global_mut<GeneralStore>(DEPLOYER);
+        assert!(!table::contains(&store.pool_owners, pool_index), EPOOL_ALREADY_REGISTERED);
+        assert!(!table::contains(&store.pool_of_authorized_addr, owner_addr), EPOOL_ADDR_ALREADY_AUTHORIZED);
+        table::add(&mut store.pool_owners, pool_index, owner_addr);
+        table::add(&mut store.pool_of_authorized_addr, owner_addr, pool_index);
+    }
+
+    public(friend) fun pool_index_if_owner(addr: address): u64 acquires GeneralStore {
+        let pool_index = pool_index_of(addr);
+        assert!(addr == owner_of_pool(pool_index), EPOOL_NOT_POOL_OWNER);
+        pool_index
     }
 
     public(friend) fun add_posted_swap(
@@ -148,38 +169,38 @@ module Meson::MesonStates {
         (pool_index, until, recipient)
     }
 
-    public(friend) fun coins_to_pool<CoinType>(pool_index: u64, coins_to_add: Coin<CoinType>) acquires StoreForCoins {
-        let store = borrow_global_mut<StoreForCoins<CoinType>>(DEPLOYER);
+    public(friend) fun coins_to_pool<CoinType>(pool_index: u64, coins_to_add: Coin<CoinType>) acquires StoreForCoin {
+        let store = borrow_global_mut<StoreForCoin<CoinType>>(DEPLOYER);
         let in_pool_coins = &mut store.in_pool_coins;
         if (table::contains(in_pool_coins, pool_index)) {
-            table::add(in_pool_coins, pool_index, coins_to_add);
-        } else {
             let current_coins = table::borrow_mut(in_pool_coins, pool_index);
             coin::merge<CoinType>(current_coins, coins_to_add);
+        } else {
+            table::add(in_pool_coins, pool_index, coins_to_add);
         };
     }
 
-    public(friend) fun coins_from_pool<CoinType>(pool_index: u64, amount: u64): Coin<CoinType> acquires StoreForCoins {
-        let store = borrow_global_mut<StoreForCoins<CoinType>>(DEPLOYER);
+    public(friend) fun coins_from_pool<CoinType>(pool_index: u64, amount: u64): Coin<CoinType> acquires StoreForCoin {
+        let store = borrow_global_mut<StoreForCoin<CoinType>>(DEPLOYER);
         let current_coins = table::borrow_mut(&mut store.in_pool_coins, pool_index);
         coin::extract<CoinType>(current_coins, amount)
     }
 
-    public(friend) fun lock_coins<CoinType>(pool_index: u64, amount: u64, swap_id: vector<u8>) acquires StoreForCoins {
-        let store = borrow_global_mut<StoreForCoins<CoinType>>(DEPLOYER);
+    public(friend) fun lock_coins<CoinType>(pool_index: u64, amount: u64, swap_id: vector<u8>) acquires StoreForCoin {
+        let store = borrow_global_mut<StoreForCoin<CoinType>>(DEPLOYER);
         let current_coins = table::borrow_mut(&mut store.in_pool_coins, pool_index);
         let coins = coin::extract<CoinType>(current_coins, amount);
 
         table::add(&mut store.pending_coins, swap_id, coins);
     }
 
-    public(friend) fun coins_to_pending<CoinType>(swap_id: vector<u8>, coins: Coin<CoinType>) acquires StoreForCoins {
-        let store = borrow_global_mut<StoreForCoins<CoinType>>(DEPLOYER);
+    public(friend) fun coins_to_pending<CoinType>(swap_id: vector<u8>, coins: Coin<CoinType>) acquires StoreForCoin {
+        let store = borrow_global_mut<StoreForCoin<CoinType>>(DEPLOYER);
         table::add(&mut store.pending_coins, swap_id, coins);
     }
 
-    public(friend) fun coins_from_pending<CoinType>(swap_id: vector<u8>): Coin<CoinType> acquires StoreForCoins {
-        let store = borrow_global_mut<StoreForCoins<CoinType>>(DEPLOYER);
+    public(friend) fun coins_from_pending<CoinType>(swap_id: vector<u8>): Coin<CoinType> acquires StoreForCoin {
+        let store = borrow_global_mut<StoreForCoin<CoinType>>(DEPLOYER);
         table::remove(&mut store.pending_coins, swap_id)
     }
 }

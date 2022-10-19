@@ -15,6 +15,7 @@ module Meson::MesonSwap {
     const ESTILL_IN_LOCK: u64 = 11;
 
 
+    // Named consistently with solidity contracts
     /// `encoded_swap` in format of `version:uint8|amount:uint40|salt:uint80|fee:uint40|expire_ts:uint40|out_chain:uint16|out_coin:uint8|in_chain:uint16|in_coin:uint8`
     ///   version: Version of encoding
     ///   amount: The amount of coins of this swap, always in decimal 6. The amount of a swap is capped at $100k so it can be safely encoded in uint48;
@@ -29,7 +30,7 @@ module Meson::MesonSwap {
     ///   out_coin: Also named `out_token` for EVM chains. The index of the coin on the target chain;
     ///   in_chain: The initial chain of a cross-chain swap (given by the last 2 bytes of SLIP-44);
     ///   in_coin: Also named `out_token` for EVM chains. The index of the coin on the initial chain.
-    public entry fun post_swap<CoinType>(
+    public entry fun postSwap<CoinType>(
         account: &signer,
         encoded_swap: vector<u8>,
         signature: vector<u8>, // must be signed by `initiator`
@@ -58,7 +59,8 @@ module Meson::MesonSwap {
     }
 
 
-    public entry fun cancel_swap<CoinType>(
+    // Named consistently with solidity contracts
+    public entry fun cancelSwap<CoinType>(
         _account: &signer, // signer could be anyone
         encoded_swap: vector<u8>,
         initiator: vector<u8>,
@@ -76,7 +78,8 @@ module Meson::MesonSwap {
     }
 
 
-    public entry fun execute_swap<CoinType>(
+    // Named consistently with solidity contracts
+    public entry fun executeSwap<CoinType>(
         _account: &signer, // signer could be anyone
         encoded_swap: vector<u8>,
         signature: vector<u8>,
