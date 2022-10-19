@@ -39,6 +39,20 @@ module Meson::MesonPools {
         coin::deposit<CoinType>(account_address, coins);
     }
 
+    // Named consistently with solidity contracts
+    public entry fun addAuthorizedAddr(account: &signer, addr: address) {
+        let account_address = signer::address_of(account);
+        let pool_index = MesonStates::pool_index_if_owner(account_address);
+        MesonStates::add_authorized(pool_index, addr);
+    }
+
+    // Named consistently with solidity contracts
+    public entry fun removeAuthorizedAddr(account: &signer, addr: address) {
+        let account_address = signer::address_of(account);
+        let pool_index = MesonStates::pool_index_if_owner(account_address);
+        MesonStates::remove_authorized(pool_index, addr);
+    }
+
 
     // Step 2: Lock
     // Named consistently with solidity contracts

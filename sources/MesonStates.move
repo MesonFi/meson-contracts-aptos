@@ -15,9 +15,10 @@ module Meson::MesonStates {
     const EPOOL_INDEX_CANNOT_BE_ZERO: u64 = 16;
     const EPOOL_NOT_REGISTERED: u64 = 17;
     const EPOOL_ALREADY_REGISTERED: u64 = 18;
-    const EPOOL_ADDR_NOT_AUTHORIZED: u64 = 19;
-    const EPOOL_ADDR_ALREADY_AUTHORIZED: u64 = 20;
-    const EPOOL_NOT_POOL_OWNER: u64 = 21;
+    const EPOOL_NOT_POOL_OWNER: u64 = 19;
+    const EPOOL_ADDR_NOT_AUTHORIZED: u64 = 20;
+    const EPOOL_ADDR_ALREADY_AUTHORIZED: u64 = 21;
+    const EPOOL_ADDR_AUTHORIZED_TO_ANOTHER: u64 = 22;
 
     friend Meson::MesonSwap;
     friend Meson::MesonPools;
@@ -110,6 +111,12 @@ module Meson::MesonStates {
         *table::borrow(pool_of_authorized_addr, authorized_addr)
     }
 
+    public(friend) fun pool_index_if_owner(addr: address): u64 acquires GeneralStore {
+        let pool_index = pool_index_of(addr);
+        assert!(addr == owner_of_pool(pool_index), EPOOL_NOT_POOL_OWNER);
+        pool_index
+    }
+
     public(friend) fun register_pool_index(pool_index: u64, owner_addr: address) acquires GeneralStore {
         assert!(pool_index != 0, EPOOL_INDEX_CANNOT_BE_ZERO);
         let store = borrow_global_mut<GeneralStore>(DEPLOYER);
@@ -119,11 +126,18 @@ module Meson::MesonStates {
         table::add(&mut store.pool_of_authorized_addr, owner_addr, pool_index);
     }
 
-    public(friend) fun pool_index_if_owner(addr: address): u64 acquires GeneralStore {
-        let pool_index = pool_index_of(addr);
-        assert!(addr == owner_of_pool(pool_index), EPOOL_NOT_POOL_OWNER);
-        pool_index
+    public(friend) fun add_authorized(pool_index: u64, addr: address) acquires GeneralStore {
+        assert!(pool_index != 0, EPOOL_INDEX_CANNOT_BE_ZERO);
+        let store = borrow_global_mut<GeneralStore>(DEPLOYER);
+        assert!(!table::contains(&store.pool_of_authorized_addr, addr), EPOOL_ADDR_ALREADY_AUTHORIZED);
+        table::add(&mut store.pool_of_authorized_addr, addr, pool_index);
     }
+
+    public(friend) fun remove_authorized(pool_index: u64, addr: address) acquires GeneralStore {
+        let store = borrow_global_mut<GeneralStore>(DEPLOYER);
+        assert!(pool_index == table::remove(&mut store.pool_of_authorized_addr, addr), EPOOL_ADDR_AUTHORIZED_TO_ANOTHER);
+    }
+
 
     public(friend) fun add_posted_swap(
         swap_id: vector<u8>,
