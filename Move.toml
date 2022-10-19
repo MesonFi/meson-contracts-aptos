@@ -8,4 +8,4 @@ AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir 
 
 [addresses]
 std = "0x1"
-Meson = "0xa2026f7394b8c486dcd189f18a5e2f7a13c458fdb04119a94abc1a9cb22c7fa1"
+Meson = "0x74db3aac7d9519c0e1e4ca6c30633d729f110bbf4edfbbcf6279ff3a754e6005"
