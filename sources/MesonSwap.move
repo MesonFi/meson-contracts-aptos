@@ -4,6 +4,7 @@
 /// on the initial chain of swaps.
 module Meson::MesonSwap {
     use std::signer;
+    use std::vector;
     use std::timestamp;
     use aptos_framework::coin;
     use Meson::MesonHelpers;
@@ -51,27 +52,22 @@ module Meson::MesonSwap {
 
         MesonHelpers::check_request_signature(encoded_swap, signature, initiator);
 
-        let swap_id = MesonHelpers::get_swap_id(encoded_swap, initiator);
+        MesonStates::add_posted_swap(encoded_swap, pool_index, initiator, signer::address_of(account));
+        
         let coins = coin::withdraw<CoinType>(account, amount);
-        MesonStates::coins_to_pending(swap_id, coins);
-        MesonStates::add_posted_swap(swap_id, pool_index, signer::address_of(account));
+        vector::push_back(&mut encoded_swap, 0xff); // so it cannot be identical to a swap_id
+        MesonStates::coins_to_pending(encoded_swap, coins);
     }
 
 
     // Named consistently with solidity contracts
-    public entry fun cancelSwap<CoinType>(
-        _account: &signer, // signer could be anyone
-        encoded_swap: vector<u8>,
-        initiator: vector<u8>,
-    ) {
-        MesonHelpers::is_eth_addr(initiator);
-
+    public entry fun cancelSwap<CoinType>(_account: &signer, encoded_swap: vector<u8>) {
         let expire_ts = MesonHelpers::expire_ts_from(encoded_swap);
         assert!(expire_ts < timestamp::now_seconds(), ESTILL_IN_LOCK);
 
-        let swap_id = MesonHelpers::get_swap_id(encoded_swap, initiator);
-        let (_, from_address) = MesonStates::remove_posted_swap(swap_id);
+        let (_, _, from_address) = MesonStates::remove_posted_swap(encoded_swap);
 
+        vector::push_back(&mut encoded_swap, 0xff); // so it cannot be identical to a swap_id
         let coins = MesonStates::coins_from_pending(encoded_swap);
         coin::deposit<CoinType>(from_address, coins);
     }
@@ -82,19 +78,16 @@ module Meson::MesonSwap {
         _account: &signer, // signer could be anyone
         encoded_swap: vector<u8>,
         signature: vector<u8>,
-        initiator: vector<u8>,
         recipient: vector<u8>,
         deposit_to_pool: bool,
     ) {
-        MesonHelpers::is_eth_addr(initiator);
-
-        let swap_id = MesonHelpers::get_swap_id(encoded_swap, initiator);
-        let (pool_index, _) = MesonStates::remove_posted_swap(swap_id);
+        let (pool_index, initiator, _) = MesonStates::remove_posted_swap(encoded_swap);
         assert!(pool_index != 0, 1);
 
         MesonHelpers::check_release_signature(encoded_swap, recipient, signature, initiator);
 
-        let coins = MesonStates::coins_from_pending(swap_id);
+        vector::push_back(&mut encoded_swap, 0xff); // so it cannot be identical to a swap_id
+        let coins = MesonStates::coins_from_pending(encoded_swap);
         if (deposit_to_pool) {
             MesonStates::coins_to_pool<CoinType>(pool_index, coins);
         } else {
