@@ -1,6 +1,8 @@
 /// @title MesonHelpers
 /// @notice The class that provides helper functions for Meson protocol
 module Meson::MesonHelpers {
+    /* ---------------------------- References ---------------------------- */
+
     use std::vector;
     use std::option;
     use std::bcs;
@@ -13,6 +15,8 @@ module Meson::MesonHelpers {
     const DEPLOYER: address = @Meson;
     const ENOT_DEPLOYER: u64 = 0;
     const ESWAP_ALREADY_EXISTS: u64 = 2;
+    const ENULL_ADDRESS: u64 = 12;
+    const ENOT_CORRECT_ETH_SIGNER: u64 = 13;
 
     const MESON_PROTOCOL_VERSION: u8 = 1;
     const SHORT_COIN_TYPE: vector<u8> = x"027d";
@@ -24,6 +28,9 @@ module Meson::MesonHelpers {
     // const REQUEST_TYPE_HASH: vector<u8> = aptos_hash::keccak256(b"bytes32 Sign to request a swap on Meson (Testnet)");
     // const RELEASE_TYPE_HASH: vector<u8> = aptos_hash::keccak256(b"bytes32 Sign to release a swap on Meson (Testnet)address Recipient");
 
+
+
+    /* ---------------------------- Utils Function ---------------------------- */
 
     public(friend) fun match_protocol_version(encoded_swap: vector<u8>) {
         assert!(version_from(encoded_swap) == MESON_PROTOCOL_VERSION, 1);
@@ -44,7 +51,7 @@ module Meson::MesonHelpers {
     }
 
     #[test]
-    public(friend) fun test_get_swap_id() {
+    public fun test_get_swap_id() {
         let swap_id = get_swap_id(
             x"01001dcd6500c00000000000f677815c000000000000634dcb98027d0102ca21",
             x"2ef8a51f8ff129dbb874a0efb021702f59c1b211"
@@ -53,10 +60,12 @@ module Meson::MesonHelpers {
     }
 
     // Functions to obtain values from encoded
+    // version: `[01]001dcd6500c00000000000f677815c000000000000634dcb98027d0102ca21`
     public(friend) fun version_from(encoded_swap: vector<u8>): u8 {
         *vector::borrow(&encoded_swap, 0)
     }
 
+    // amount: `01|[001dcd6500]c00000000000f677815c000000000000634dcb98027d0102ca21`
     public(friend) fun amount_from(encoded_swap: vector<u8>): u64 {
         let amount = (*vector::borrow(&encoded_swap, 1) as u64);
         let i = 2;
@@ -68,22 +77,13 @@ module Meson::MesonHelpers {
         amount
     }
 
+    // service fee: Default to 0.1% of amount
     public(friend) fun service_fee(encoded_swap: vector<u8>): u64 {
         let amount = amount_from(encoded_swap);
-        amount * 10 / 10000 // Default to 0.1% * `amount`
+        amount * 10 / 10000
     }
 
-    public(friend) fun fee_for_lp(encoded_swap: vector<u8>): u64 {
-        let fee = (*vector::borrow(&encoded_swap, 16) as u64);
-        let i = 17;
-        while (i < 21) {
-            let byte = *vector::borrow(&encoded_swap, i);
-            fee = (fee << 8) + (byte as u64);
-            i = i + 1;
-        };
-        fee
-    }
-
+    // salt & other infromation: `01|001dcd6500|[c00000000000f677815c]000000000000634dcb98027d0102ca21`
     public(friend) fun salt_from(encoded_swap: vector<u8>): vector<u8> {
         vector[
             *vector::borrow(&encoded_swap, 6),
@@ -99,6 +99,7 @@ module Meson::MesonHelpers {
         ]
     }
 
+    // salt data: `01|001dcd6500|c0[0000000000f677815c]000000000000634dcb98027d0102ca21`
     public(friend) fun salt_data_from(encoded_swap: vector<u8>): vector<u8> {
         vector[
             *vector::borrow(&encoded_swap, 8),
@@ -110,6 +111,18 @@ module Meson::MesonHelpers {
             *vector::borrow(&encoded_swap, 14),
             *vector::borrow(&encoded_swap, 15)
         ]
+    }
+
+    // fee for lp: `01|001dcd6500|c00000000000f677815c|[0000000000]00634dcb98027d0102ca21`
+    public(friend) fun fee_for_lp(encoded_swap: vector<u8>): u64 {
+        let fee = (*vector::borrow(&encoded_swap, 16) as u64);
+        let i = 17;
+        while (i < 21) {
+            let byte = *vector::borrow(&encoded_swap, i);
+            fee = (fee << 8) + (byte as u64);
+            i = i + 1;
+        };
+        fee
     }
 
     public(friend) fun will_transfer_to_contract(encoded_swap: vector<u8>): bool {
@@ -124,6 +137,7 @@ module Meson::MesonHelpers {
         *vector::borrow(&encoded_swap, 6) & 0x08 == 0x08
     }
 
+    // expire timestamp: `01|001dcd6500|c00000000000f677815c|0000000000|[00634dcb98]|027d0102ca21`
     public(friend) fun expire_ts_from(encoded_swap: vector<u8>): u64 {
         let expire_ts = (*vector::borrow(&encoded_swap, 21) as u64);
         let i = 22;
@@ -135,22 +149,25 @@ module Meson::MesonHelpers {
         expire_ts
     }
 
-    public(friend) fun in_chain_from(encoded_swap: vector<u8>): vector<u8> {
-        vector[*vector::borrow(&encoded_swap, 29), *vector::borrow(&encoded_swap, 30)]
-    }
-
-    public(friend) fun in_token_index_from(encoded_swap: vector<u8>): u8 {
-        *vector::borrow(&encoded_swap, 31)
-    }
-
+    // target chain (slip44): `01|001dcd6500|c00000000000f677815c|0000000000|00634dcb98|[027d]0102ca21`
     public(friend) fun out_chain_from(encoded_swap: vector<u8>): vector<u8> {
         vector[*vector::borrow(&encoded_swap, 26), *vector::borrow(&encoded_swap, 27)]
     }
 
-    public(friend) fun out_token_index_from(encoded_swap: vector<u8>): u8 {
+    // target coin index: `01|001dcd6500|c00000000000f677815c|0000000000|00634dcb98|027d[01]02ca21`
+    public(friend) fun out_coin_index_from(encoded_swap: vector<u8>): u8 {
         *vector::borrow(&encoded_swap, 28)
     }
 
+    // source chain (slip44): `01|001dcd6500|c00000000000f677815c|0000000000|00634dcb98|027d01[02ca]21`
+    public(friend) fun in_chain_from(encoded_swap: vector<u8>): vector<u8> {
+        vector[*vector::borrow(&encoded_swap, 29), *vector::borrow(&encoded_swap, 30)]
+    }
+
+    // source coin index: `01|001dcd6500|c00000000000f677815c|0000000000|00634dcb98|027d0102ca[21]`
+    public(friend) fun in_coin_index_from(encoded_swap: vector<u8>): u8 {
+        *vector::borrow(&encoded_swap, 31)
+    }
 
 
     public(friend) fun check_request_signature(
@@ -158,8 +175,7 @@ module Meson::MesonHelpers {
         signature: vector<u8>,
         signer_eth_addr: vector<u8>
     ) {
-        assert!(signer_eth_addr != x"", 1);
-
+        assert!(signer_eth_addr != x"", ENULL_ADDRESS);
         let msg_hash = aptos_hash::keccak256(encoded_swap);
 
         // TODO: How to store the hash as constant?
@@ -168,7 +184,7 @@ module Meson::MesonHelpers {
         let digest = aptos_hash::keccak256(with_header);
 
         let recovered = recover_eth_address(digest, signature);
-        assert!(recovered == signer_eth_addr, 1);
+        assert!(recovered == signer_eth_addr, ENOT_CORRECT_ETH_SIGNER);
     }
 
     #[test]
@@ -179,13 +195,22 @@ module Meson::MesonHelpers {
         check_request_signature(encoded_swap, signature, eth_addr);
     }
 
+    #[test]
+    #[expected_failure(abort_code=13)]
+    fun test_check_request_signature_error() {
+        let encoded_swap = x"01001dcd6500c00000000000f677815c000000000000634dcb98027d0102ca21";
+        let signature = x"b3184c257cf973069250eefd849a74d27250f8343cbda7615191149dd3c1b61d5d4e2b5ecc76a59baabf10a8d5d116edb95a5b2055b9b19f71524096975b29c3";
+        let eth_addr = x"2ef8a51f8ff129dbb874a0efb021702f59c1b211";
+        check_request_signature(encoded_swap, signature, eth_addr);
+    }
+
     public(friend) fun check_release_signature(
         encoded_swap: vector<u8>,
         recipient: vector<u8>,
         signature: vector<u8>,
         signer_eth_addr: vector<u8>,
     ) {
-        assert!(signer_eth_addr != x"", 1);
+        assert!(signer_eth_addr != x"", ENULL_ADDRESS);
 
         let msg = copy encoded_swap;
         vector::append(&mut msg, recipient);
@@ -197,7 +222,7 @@ module Meson::MesonHelpers {
         let digest = aptos_hash::keccak256(with_header);
 
         let recovered = recover_eth_address(digest, signature);
-        assert!(recovered == signer_eth_addr, 1);
+        assert!(recovered == signer_eth_addr, ENOT_CORRECT_ETH_SIGNER);
     }
 
     #[test]
@@ -220,12 +245,12 @@ module Meson::MesonHelpers {
         eth_addr
     }
 
-    #[test]
-    fun test_eth_address_from_aptos_address() {
-        let aptos_addr = @0x01015ace920c716794445979be68d402d28b2805b7beaae935d7fe369fa7cfa0;
-        let eth_addr = eth_address_from_aptos_address(aptos_addr);
-        assert!(eth_addr == x"01015ace920c716794445979be68d402d28b2805", 1);
-    }
+    // #[test]     // (Error warning in move analyzer)
+    // fun test_eth_address_from_aptos_address() {
+    //     let aptos_addr = @0x01015ace920c716794445979be68d402d28b2805b7beaae935d7fe369fa7cfa0;
+    //     let eth_addr = eth_address_from_aptos_address(aptos_addr);
+    //     assert!(eth_addr == x"01015ace920c716794445979be68d402d28b2805", 1);
+    // }
 
     public fun eth_address_from_pubkey(pk: vector<u8>): vector<u8> {
         // Public key `pk` should be uncompressed 
