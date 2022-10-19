@@ -11,7 +11,7 @@ const {
   SignedSwapRequest,
   SignedSwapRelease,
 } = require('@mesonfi/sdk')
-const { Meson } = require('@mesonfi/contract-abis')
+const { ERC20, Meson } = require('@mesonfi/contract-abis')
 
 dotenv.config()
 
@@ -39,16 +39,17 @@ async function swap() {
 
   const client = new AptosClient(APTOS_NODE_URL)
   const user = adaptor.getWallet(APTOS_PRIVATE_KEY, client)
-  const userAddress = await user.getAddress()
-  console.log(`User address: ${userAddress}`)
-  console.log(`Balance: ${utils.formatUnits(await user.getBalance(userAddress), 8)} APT`)
-
   const lp = adaptor.getWallet(APTOS_LP_PRIVATE_KEY, client)
+  const meson = adaptor.getContract(address, Meson.abi, lp)
+  const { tokens: coins } = await meson.getSupportedTokens()
+
   const lpAddress = await lp.getAddress()
   console.log(`LP address: ${lpAddress}`)
-  console.log(`Balance: ${utils.formatUnits(await lp.getBalance(lpAddress), 8)} APT`)
+  await logWalletInfo(lp, coins, meson)
 
-  const meson = adaptor.getContract(address, Meson.abi, lp)
+  const userAddress = await user.getAddress()
+  console.log(`User address: ${userAddress}`)
+  await logWalletInfo(user, coins)
 
   // Aptos private key can be used as an Ethereum private key
   const mesonClient = await MesonClient.Create(meson)
@@ -57,10 +58,10 @@ async function swap() {
 
 
   const swapData = {
-    amount: '1000000',
+    amount: '10000000',
     fee: '1000',
     inToken: 1,
-    outToken: 1,
+    outToken: 2,
     recipient: userAddress,
     salt: '0x80'
   }
@@ -72,6 +73,8 @@ async function swap() {
   const tx1 = await mesonClient.lock(signedRequest, userAddress)
   console.log(`Locked: \t${tx1.hash}`)
   await tx1.wait()
+  await logPoolBalance(lp, coins[0], meson)
+
 
   const release = await swap.signForRelease(userAddress, true)
   const signedRelease = new SignedSwapRelease(release)
@@ -79,13 +82,14 @@ async function swap() {
   const tx2 = await mesonClient.release(signedRelease)
   console.log(`Released: \t${tx2.hash}`)
   await tx2.wait()
+  await logCoinBalance(user, coins[0])
 
 
   const swapData2 = {
-    amount: '500000',
+    amount: '5000000',
     fee: '0',
     inToken: 1,
-    outToken: 1,
+    outToken: 2,
     recipient: userAddress,
     salt: '0x80'
   }
@@ -93,14 +97,44 @@ async function swap() {
   const request2 = await swap2.signForRequest(true)
   const signedRequest2 = new SignedSwapRequest(request2)
 
-  const tx3 = await mesonClientForUser.postSwap(signedRequest2, lpAddress)
+  const tx3 = await mesonClientForUser.postSwap(signedRequest2, 1)
   console.log(`Posted: \t${tx3.hash}`)
   await tx3.wait()
+  await logCoinBalance(user, coins[0])
+
 
   const release2 = await swap2.signForRelease(userAddress, true)
   const signedRelease2 = new SignedSwapRelease(release2)
 
-  const tx4 = await mesonClient.executeSwap(signedRelease2)
+  const tx4 = await mesonClient.executeSwap(signedRelease2, true)
   console.log(`Executed: \t${tx4.hash}`)
   await tx4.wait()
+  await logPoolBalance(lp, coins[0], meson)
+}
+
+
+async function logWalletInfo(wallet, coins, meson) {
+  const addr = await wallet.getAddress()
+  console.log(`  Balance: ${utils.formatUnits(await wallet.getBalance(addr), 8)} APT`)
+  for (let i = 0; i < coins.length; i++) {
+    await logCoinBalance(wallet, coins[i])
+  }
+  if (meson) {
+    for (let i = 0; i < coins.length; i++) {
+      await logPoolBalance(wallet, coins[i], meson)
+    }
+  }
+}
+
+async function logCoinBalance(wallet, coin) {
+  const coinContract = adaptor.getContract(coin, ERC20.abi, wallet)
+  const addr = await wallet.getAddress()
+  const balance = await coinContract.balanceOf(addr)
+  console.log(`  Coin: ${utils.formatUnits(balance, 6)} ${coin.split('::')[1]}`)
+}
+
+async function logPoolBalance(wallet, coin, meson) {
+  const addr = await wallet.getAddress()
+  const balance = await meson.poolTokenBalance(coin, addr)
+  console.log(`  Pool: ${utils.formatUnits(balance, 6)} ${coin.split('::')[1]}`)
 }
