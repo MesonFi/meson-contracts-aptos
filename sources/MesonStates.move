@@ -65,10 +65,6 @@ module Meson::MesonStates {
         move_to<GeneralStore>(deployer, store);
     }
 
-    public(friend) fun get_premium_manager(): address acquires GeneralStore {
-        owner_of_pool(0)
-    }
-
     // Named consistently with solidity contracts
     public entry fun addSupportToken<CoinType>(
         signer_account: &signer,
@@ -112,6 +108,10 @@ module Meson::MesonStates {
         *table::borrow(pool_owners, pool_index)
     }
 
+    public(friend) fun get_premium_manager(): address acquires GeneralStore {
+        owner_of_pool(0)
+    }
+
     public(friend) fun pool_index_of(authorized_addr: address): u64 acquires GeneralStore {
         let pool_of_authorized_addr = &borrow_global<GeneralStore>(DEPLOYER).pool_of_authorized_addr;
         assert!(table::contains(pool_of_authorized_addr, authorized_addr), EPOOL_ADDR_NOT_AUTHORIZED);
@@ -143,6 +143,34 @@ module Meson::MesonStates {
     public(friend) fun remove_authorized(pool_index: u64, addr: address) acquires GeneralStore {
         let store = borrow_global_mut<GeneralStore>(DEPLOYER);
         assert!(pool_index == table::remove(&mut store.pool_of_authorized_addr, addr), EPOOL_ADDR_AUTHORIZED_TO_ANOTHER);
+    }
+
+
+    public(friend) fun coins_to_pool<CoinType>(pool_index: u64, coins_to_add: Coin<CoinType>) acquires StoreForCoin {
+        let store = borrow_global_mut<StoreForCoin<CoinType>>(DEPLOYER);
+        let in_pool_coins = &mut store.in_pool_coins;
+        if (table::contains(in_pool_coins, pool_index)) {
+            let current_coins = table::borrow_mut(in_pool_coins, pool_index);
+            coin::merge<CoinType>(current_coins, coins_to_add);
+        } else {
+            table::add(in_pool_coins, pool_index, coins_to_add);
+        };
+    }
+
+    public(friend) fun coins_from_pool<CoinType>(pool_index: u64, amount: u64): Coin<CoinType> acquires StoreForCoin {
+        let store = borrow_global_mut<StoreForCoin<CoinType>>(DEPLOYER);
+        let current_coins = table::borrow_mut(&mut store.in_pool_coins, pool_index);
+        coin::extract<CoinType>(current_coins, amount)
+    }
+
+    public(friend) fun coins_to_pending<CoinType>(swap_id: vector<u8>, coins: Coin<CoinType>) acquires StoreForCoin {
+        let store = borrow_global_mut<StoreForCoin<CoinType>>(DEPLOYER);
+        table::add(&mut store.pending_coins, swap_id, coins);
+    }
+
+    public(friend) fun coins_from_pending<CoinType>(swap_id: vector<u8>): Coin<CoinType> acquires StoreForCoin {
+        let store = borrow_global_mut<StoreForCoin<CoinType>>(DEPLOYER);
+        table::remove(&mut store.pending_coins, swap_id)
     }
 
 
@@ -190,40 +218,5 @@ module Meson::MesonStates {
         let LockedSwap { pool_index, until, recipient } = table::remove(locked_swaps, swap_id);
 
         (pool_index, until, recipient)
-    }
-
-    public(friend) fun coins_to_pool<CoinType>(pool_index: u64, coins_to_add: Coin<CoinType>) acquires StoreForCoin {
-        let store = borrow_global_mut<StoreForCoin<CoinType>>(DEPLOYER);
-        let in_pool_coins = &mut store.in_pool_coins;
-        if (table::contains(in_pool_coins, pool_index)) {
-            let current_coins = table::borrow_mut(in_pool_coins, pool_index);
-            coin::merge<CoinType>(current_coins, coins_to_add);
-        } else {
-            table::add(in_pool_coins, pool_index, coins_to_add);
-        };
-    }
-
-    public(friend) fun coins_from_pool<CoinType>(pool_index: u64, amount: u64): Coin<CoinType> acquires StoreForCoin {
-        let store = borrow_global_mut<StoreForCoin<CoinType>>(DEPLOYER);
-        let current_coins = table::borrow_mut(&mut store.in_pool_coins, pool_index);
-        coin::extract<CoinType>(current_coins, amount)
-    }
-
-    public(friend) fun lock_coins<CoinType>(pool_index: u64, amount: u64, swap_id: vector<u8>) acquires StoreForCoin {
-        let store = borrow_global_mut<StoreForCoin<CoinType>>(DEPLOYER);
-        let current_coins = table::borrow_mut(&mut store.in_pool_coins, pool_index);
-        let coins = coin::extract<CoinType>(current_coins, amount);
-
-        table::add(&mut store.pending_coins, swap_id, coins);
-    }
-
-    public(friend) fun coins_to_pending<CoinType>(swap_id: vector<u8>, coins: Coin<CoinType>) acquires StoreForCoin {
-        let store = borrow_global_mut<StoreForCoin<CoinType>>(DEPLOYER);
-        table::add(&mut store.pending_coins, swap_id, coins);
-    }
-
-    public(friend) fun coins_from_pending<CoinType>(swap_id: vector<u8>): Coin<CoinType> acquires StoreForCoin {
-        let store = borrow_global_mut<StoreForCoin<CoinType>>(DEPLOYER);
-        table::remove(&mut store.pending_coins, swap_id)
     }
 }
