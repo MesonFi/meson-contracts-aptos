@@ -9,7 +9,6 @@ module Meson::MesonSwap {
     use Meson::MesonHelpers;
     use Meson::MesonStates;
 
-    const DEPLOYER: address = @Meson;
     const EEXPIRE_TOO_EARLY: u64 = 3;
     const EEXPIRE_TOO_LATE: u64 = 4;
     const ESTILL_IN_LOCK: u64 = 11;

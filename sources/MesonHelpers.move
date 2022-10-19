@@ -12,9 +12,6 @@ module Meson::MesonHelpers {
     friend Meson::MesonSwap;
     friend Meson::MesonPools;
 
-    const DEPLOYER: address = @Meson;
-    const ENOT_DEPLOYER: u64 = 0;
-    const ESWAP_ALREADY_EXISTS: u64 = 2;
     const EINVALID_ENCODED_LENGTH: u64 = 33;
     const EINVALID_ETH_ADDRESS: u64 = 34;
     const EINVALID_SIGNATURE: u64 = 35;
