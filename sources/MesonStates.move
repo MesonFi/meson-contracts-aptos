@@ -7,6 +7,7 @@ module Meson::MesonStates {
 
     const DEPLOYER: address = @Meson;
     const ENOT_DEPLOYER: u64 = 0;
+    const ENOT_MANAGER: u64 = 0;
     const EALREADY_IN_COIN_LIST: u64 = 1;
     const ESWAP_ALREADY_EXISTS: u64 = 2;
     const ECOIN_TYPE_ERROR: u64 = 5;
@@ -48,7 +49,7 @@ module Meson::MesonStates {
         recipient: address,
     }
 
-    public entry fun initialize(deployer: &signer) {
+    public entry fun initialize(deployer: &signer, premium_manager: address) {
         let deployerAddress = signer::address_of(deployer);
         assert!(deployerAddress == DEPLOYER, ENOT_DEPLOYER);
 
@@ -59,7 +60,13 @@ module Meson::MesonStates {
             posted_swaps: table::new<vector<u8>, PostedSwap>(),
             locked_swaps: table::new<vector<u8>, LockedSwap>(),
         };
+        // pool_index = 0 is manager
+        table::add(&mut store.pool_owners, 0, premium_manager);
         move_to<GeneralStore>(deployer, store);
+    }
+
+    public(friend) fun get_premium_manager(): address acquires GeneralStore {
+        owner_of_pool(0)
     }
 
     // Named consistently with solidity contracts

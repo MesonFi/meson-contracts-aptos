@@ -102,12 +102,17 @@ module Meson::MesonPools {
     // Step 3: Release
     // Named consistently with solidity contracts
     public entry fun release<CoinType>(
-        _account: &signer, // signer could be anyone
+        account: &signer, // signer could be anyone
         encoded_swap: vector<u8>,
         signature: vector<u8>,
         initiator: vector<u8>,
     ) {
         MesonHelpers::is_eth_addr(initiator);
+
+        let waived = MesonHelpers::fee_waived(encoded_swap);
+        if (waived) {
+            assert!(signer::address_of(account) == MesonStates::get_premium_manager(), 1);
+        };
 
         let swap_id = MesonHelpers::get_swap_id(encoded_swap, initiator);
         let (_, until, recipient) = MesonStates::remove_locked_swap(swap_id);
@@ -122,7 +127,10 @@ module Meson::MesonPools {
 
         // Release to recipient
         let coins = MesonStates::coins_from_pending<CoinType>(swap_id);
-        // TODO: subtract service fee
+        if (!waived) {
+            let service_fee = coin::extract<CoinType>(&mut coins, MesonHelpers::service_fee(encoded_swap));
+            MesonStates::coins_to_pool<CoinType>(0, service_fee);
+        };
         coin::deposit<CoinType>(recipient, coins);
     }
 }

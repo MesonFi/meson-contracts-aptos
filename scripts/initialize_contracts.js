@@ -34,7 +34,7 @@ async function initialize() {
   const tx = await wallet.sendTransaction({
     function: `${address}::MesonStates::initialize`,
     type_arguments: [],
-    arguments: []
+    arguments: [address]
   })
   console.log(`initialize: ${tx.hash}`)
   await tx.wait()
