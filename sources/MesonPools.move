@@ -10,9 +10,11 @@ module Meson::MesonPools {
     use Meson::MesonHelpers;
     use Meson::MesonStates;
 
-    const EEXIPRE_TS_IS_SOON: u64 = 6;
-    const EALREADY_EXPIRED: u64 = 10;
-    const ESTILL_IN_LOCK: u64 = 11;
+    const EPOOL_INDEX_MISMATCH: u64 = 17;
+   
+    const ESWAP_EXIPRE_TS_IS_SOON: u64 = 46;
+    const ESWAP_STILL_IN_LOCK: u64 = 47;
+    const ESWAP_PASSED_LOCK_PERIOD: u64 = 48;
 
 
     // Named consistently with solidity contracts
@@ -26,7 +28,7 @@ module Meson::MesonPools {
     // Named consistently with solidity contracts
     public entry fun deposit<CoinType>(account: &signer, amount: u64, pool_index: u64) {
         let account_address = signer::address_of(account);
-        assert!(pool_index == MesonStates::pool_index_of(account_address), 1);
+        assert!(pool_index == MesonStates::pool_index_of(account_address), EPOOL_INDEX_MISMATCH);
         let coins = coin::withdraw<CoinType>(account, amount);
         MesonStates::coins_to_pool<CoinType>(pool_index, coins);
     }
@@ -34,7 +36,7 @@ module Meson::MesonPools {
     // Named consistently with solidity contracts
     public entry fun withdraw<CoinType>(account: &signer, amount: u64, pool_index: u64) {
         let account_address = signer::address_of(account);
-        assert!(pool_index == MesonStates::pool_index_if_owner(account_address), 1);
+        assert!(pool_index == MesonStates::pool_index_if_owner(account_address), EPOOL_INDEX_MISMATCH);
         let coins = MesonStates::coins_from_pool<CoinType>(pool_index, amount);
         coin::deposit<CoinType>(account_address, coins);
     }
@@ -69,7 +71,7 @@ module Meson::MesonPools {
         MesonHelpers::is_eth_addr(initiator);
 
         let until = timestamp::now_seconds() + MesonHelpers::get_LOCK_TIME_PERIOD();
-        assert!(until < MesonHelpers::expire_ts_from(encoded_swap) - 300, EEXIPRE_TS_IS_SOON);
+        assert!(until < MesonHelpers::expire_ts_from(encoded_swap) - 300, ESWAP_EXIPRE_TS_IS_SOON);
 
         let pool_index = MesonStates::pool_index_of(signer::address_of(account));
 
@@ -95,7 +97,7 @@ module Meson::MesonPools {
         
         let swap_id = MesonHelpers::get_swap_id(encoded_swap, initiator);
         let (pool_index, until, _) = MesonStates::remove_locked_swap(swap_id);
-        assert!(until < timestamp::now_seconds(), ESTILL_IN_LOCK);
+        assert!(until < timestamp::now_seconds(), ESWAP_STILL_IN_LOCK);
 
         let coins = MesonStates::coins_from_pending<CoinType>(swap_id);
         MesonStates::coins_to_pool<CoinType>(pool_index, coins);
@@ -114,12 +116,12 @@ module Meson::MesonPools {
 
         let waived = MesonHelpers::fee_waived(encoded_swap);
         if (waived) {
-            assert!(signer::address_of(account) == MesonStates::get_premium_manager(), 1);
+            assert_is_premium_manager(signer::address_of(account));
         };
 
         let swap_id = MesonHelpers::get_swap_id(encoded_swap, initiator);
         let (_, until, recipient) = MesonStates::remove_locked_swap(swap_id);
-        assert!(until > timestamp::now_seconds(), EALREADY_EXPIRED);
+        assert!(until > timestamp::now_seconds(), ESWAP_PASSED_LOCK_PERIOD);
 
         MesonHelpers::check_release_signature(
             encoded_swap,

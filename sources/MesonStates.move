@@ -6,20 +6,22 @@ module Meson::MesonStates {
     use aptos_framework::coin::{Coin};
 
     const DEPLOYER: address = @Meson;
+
     const ENOT_DEPLOYER: u64 = 0;
-    const ENOT_MANAGER: u64 = 0;
-    const EALREADY_IN_COIN_LIST: u64 = 1;
-    const ESWAP_ALREADY_EXISTS: u64 = 2;
-    const ECOIN_TYPE_ERROR: u64 = 5;
-    const ESWAP_NOT_EXISTS: u64 = 9;
+    const EUNAUTHORIZED: u64 = 1;
+    const ECOIN_INDEX_USED: u64 = 4;
 
     const EPOOL_INDEX_CANNOT_BE_ZERO: u64 = 16;
-    const EPOOL_NOT_REGISTERED: u64 = 17;
-    const EPOOL_ALREADY_REGISTERED: u64 = 18;
-    const EPOOL_NOT_POOL_OWNER: u64 = 19;
-    const EPOOL_ADDR_NOT_AUTHORIZED: u64 = 20;
-    const EPOOL_ADDR_ALREADY_AUTHORIZED: u64 = 21;
-    const EPOOL_ADDR_AUTHORIZED_TO_ANOTHER: u64 = 22;
+    const EPOOL_NOT_REGISTERED: u64 = 18;
+    const EPOOL_ALREADY_REGISTERED: u64 = 19;
+    const EPOOL_NOT_POOL_OWNER: u64 = 20;
+    const EPOOL_ADDR_NOT_AUTHORIZED: u64 = 21;
+    const EPOOL_ADDR_ALREADY_AUTHORIZED: u64 = 22;
+    const EPOOL_ADDR_AUTHORIZED_TO_ANOTHER: u64 = 23;
+
+    const ESWAP_NOT_EXISTS: u64 = 34;
+    const ESWAP_ALREADY_EXISTS: u64 = 35;
+    const ESWAP_COIN_MISMATCH: u64 = 38;
 
     friend Meson::MesonSwap;
     friend Meson::MesonPools;
@@ -76,7 +78,7 @@ module Meson::MesonStates {
 
         let store = borrow_global_mut<GeneralStore>(DEPLOYER);
         let supported_coins = &mut store.supported_coins;
-        assert!(!table::contains(supported_coins, coin_index), 1);
+        assert!(!table::contains(supported_coins, coin_index), ECOIN_INDEX_USED);
         table::add(supported_coins, coin_index, type_info::type_of<CoinType>());
 
         let coin_store = StoreForCoin<CoinType> {
@@ -99,7 +101,7 @@ module Meson::MesonStates {
             type_info::account_address(&type1) == type_info::account_address(&type2) &&
             type_info::module_name(&type1) == type_info::module_name(&type2) &&
             type_info::struct_name(&type1) == type_info::struct_name(&type2),
-            1
+            ESWAP_COIN_MISMATCH
         );
     }
 
@@ -109,8 +111,8 @@ module Meson::MesonStates {
         *table::borrow(pool_owners, pool_index)
     }
 
-    public(friend) fun get_premium_manager(): address acquires GeneralStore {
-        owner_of_pool(0)
+    public(friend) fun assert_is_premium_manager(addr: address) acquires GeneralStore {
+        assert!(addr == owner_of_pool(0), EUNAUTHORIZED);
     }
 
     public(friend) fun pool_index_of(authorized_addr: address): u64 acquires GeneralStore {

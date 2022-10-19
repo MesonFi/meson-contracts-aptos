@@ -10,9 +10,11 @@ module Meson::MesonSwap {
     use Meson::MesonHelpers;
     use Meson::MesonStates;
 
-    const EEXPIRE_TOO_EARLY: u64 = 3;
-    const EEXPIRE_TOO_LATE: u64 = 4;
-    const ESTILL_IN_LOCK: u64 = 11;
+    const EPOOL_INDEX_CANNOT_BE_ZERO: u64 = 16;
+
+    const ESWAP_EXPIRE_TOO_EARLY: u64 = 42;
+    const ESWAP_EXPIRE_TOO_LATE: u64 = 43;
+    const ESWAP_CANNOT_CANCEL_BEFORE_EXPIRE: u64 = 44;
 
 
     // Named consistently with solidity contracts
@@ -47,8 +49,8 @@ module Meson::MesonSwap {
 
         // Assertion about time-lock.
         let delta = MesonHelpers::expire_ts_from(encoded_swap) - timestamp::now_seconds();
-        assert!(delta > MesonHelpers::get_MIN_BOND_TIME_PERIOD(), EEXPIRE_TOO_EARLY);
-        assert!(delta < MesonHelpers::get_MAX_BOND_TIME_PERIOD(), EEXPIRE_TOO_LATE);
+        assert!(delta > MesonHelpers::get_MIN_BOND_TIME_PERIOD(), ESWAP_EXPIRE_TOO_EARLY);
+        assert!(delta < MesonHelpers::get_MAX_BOND_TIME_PERIOD(), ESWAP_EXPIRE_TOO_LATE);
 
         MesonHelpers::check_request_signature(encoded_swap, signature, initiator);
 
@@ -63,7 +65,7 @@ module Meson::MesonSwap {
     // Named consistently with solidity contracts
     public entry fun cancelSwap<CoinType>(_account: &signer, encoded_swap: vector<u8>) {
         let expire_ts = MesonHelpers::expire_ts_from(encoded_swap);
-        assert!(expire_ts < timestamp::now_seconds(), ESTILL_IN_LOCK);
+        assert!(expire_ts < timestamp::now_seconds(), ESWAP_CANNOT_CANCEL_BEFORE_EXPIRE);
 
         let (_, _, from_address) = MesonStates::remove_posted_swap(encoded_swap);
 
@@ -82,7 +84,7 @@ module Meson::MesonSwap {
         deposit_to_pool: bool,
     ) {
         let (pool_index, initiator, _) = MesonStates::remove_posted_swap(encoded_swap);
-        assert!(pool_index != 0, 1);
+        assert!(pool_index != 0, EPOOL_INDEX_CANNOT_BE_ZERO);
 
         MesonHelpers::check_release_signature(encoded_swap, recipient, signature, initiator);
 

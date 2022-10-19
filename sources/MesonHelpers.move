@@ -12,10 +12,15 @@ module Meson::MesonHelpers {
     friend Meson::MesonSwap;
     friend Meson::MesonPools;
 
-    const EINVALID_ENCODED_LENGTH: u64 = 33;
-    const EINVALID_ETH_ADDRESS: u64 = 34;
-    const EINVALID_SIGNATURE: u64 = 35;
-    const ESWAP_AMOUNT_OVER_MAX: u64 = 36;
+    const EINVALID_ETH_ADDRESS: u64 = 8;
+    const EINVALID_PUBLIC_KEY: u64 = 9;
+    const EINVALID_SIGNATURE: u64 = 10;
+
+    const EINVALID_ENCODED_LENGTH: u64 = 32;
+    const EINVALID_ENCODED_VERSION: u64 = 33;
+    const ESWAP_IN_CHAIN_MISMATCH: u64 = 36;
+    const ESWAP_OUT_CHAIN_MISMATCH: u64 = 37;
+    const ESWAP_AMOUNT_OVER_MAX: u64 = 40;
 
     const MESON_PROTOCOL_VERSION: u8 = 1;
     const SHORT_COIN_TYPE: vector<u8> = x"027d"; // See https://github.com/satoshilabs/slips/blob/master/slip-0044.md
@@ -44,27 +49,27 @@ module Meson::MesonHelpers {
         LOCK_TIME_PERIOD
     }
 
+    public(friend) fun is_encoded_valid(encoded_swap: vector<u8>) {
+        assert!(vector::length(&encoded_swap) == 32, EINVALID_ENCODED_LENGTH);
+        match_protocol_version(encoded_swap)
+    }
+
     public(friend) fun match_protocol_version(encoded_swap: vector<u8>) {
-        assert!(version_from(encoded_swap) == MESON_PROTOCOL_VERSION, 1);
+        assert!(version_from(encoded_swap) == MESON_PROTOCOL_VERSION, EINVALID_ENCODED_VERSION);
     }
 
     public(friend) fun for_initial_chain(encoded_swap: vector<u8>) {
-        assert!(in_chain_from(encoded_swap) == SHORT_COIN_TYPE, 1);
+        assert!(in_chain_from(encoded_swap) == SHORT_COIN_TYPE, ESWAP_IN_CHAIN_MISMATCH);
     }
 
     public(friend) fun for_target_chain(encoded_swap: vector<u8>) {
-        assert!(out_chain_from(encoded_swap) == SHORT_COIN_TYPE, 1);
+        assert!(out_chain_from(encoded_swap) == SHORT_COIN_TYPE, ESWAP_OUT_CHAIN_MISMATCH);
     }
 
     public(friend) fun get_swap_id(encoded_swap: vector<u8>, initiator: vector<u8>): vector<u8> {
         let buf = copy encoded_swap;
         vector::append(&mut buf, initiator);
         aptos_hash::keccak256(buf)
-    }
-
-    public(friend) fun is_encoded_valid(encoded_swap: vector<u8>) {
-        assert!(vector::length(&encoded_swap) == 32, EINVALID_ENCODED_LENGTH);
-        match_protocol_version(encoded_swap)
     }
 
     #[test]
@@ -281,7 +286,7 @@ module Meson::MesonHelpers {
     public fun eth_address_from_pubkey(pk: vector<u8>): vector<u8> {
         // Public key `pk` should be uncompressed 
         // Notice that Ethereum pubkey has an extra 0x04 prefix (specifies uncompressed)
-        assert!(vector::length(&pk) == 64, 1);
+        assert!(vector::length(&pk) == 64, EINVALID_PUBLIC_KEY);
         let hash = aptos_hash::keccak256(pk);
         let eth_addr = vector::empty<u8>();
         let i = 12;
