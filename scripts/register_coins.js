@@ -30,14 +30,15 @@ async function register() {
   const wallet = adaptor.getWallet(APTOS_PRIVATE_KEY, client)
   const meson = adaptor.getContract(address, Meson.abi, wallet)
 
-  const { tokens } = await meson.getSupportedTokens()
-  for (const token of tokens) {
+
+  const { tokens: coins } = await meson.getSupportedTokens() // Named consistently with solidity contracts
+  for (const coin of coins) {
     const tx = await wallet.sendTransaction({
       function: '0x1::managed_coin::register',
-      type_arguments: [token],
+      type_arguments: [coin],
       arguments: []
     })
-    console.log(`Register coin (${token.split('::')[1]}): ${tx.hash}`)
+    console.log(`Register coin (${coin.split('::')[1]}): ${tx.hash}`)
     await tx.wait()
   }
 }
