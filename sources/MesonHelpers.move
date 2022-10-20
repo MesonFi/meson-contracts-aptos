@@ -30,10 +30,17 @@ module Meson::MesonHelpers {
     const MAX_BOND_TIME_PERIOD: u64 = 7200;     // 2 hours
     const LOCK_TIME_PERIOD: u64 = 2400;         // 40 minutes
 
+    const ETH_SIGN_HEADER: vector<u8> = b"\x19Ethereum Signed Message:\n32";
+    const ETH_SIGN_HEADER_52: vector<u8> = b"\x19Ethereum Signed Message:\n52";
+    const TRON_SIGN_HEADER: vector<u8> = b"\x19TRON Signed Message:\n32\n";
+    const TRON_SIGN_HEADER_33: vector<u8> = b"\x19TRON Signed Message:\n33\n";
+    const TRON_SIGN_HEADER_53: vector<u8> = b"\x19TRON Signed Message:\n53\n";
+
     const REQUEST_TYPE: vector<u8> = b"bytes32 Sign to request a swap on Meson (Testnet)";
     const RELEASE_TYPE: vector<u8> = b"bytes32 Sign to release a swap on Meson (Testnet)address Recipient";
 
     // TODO: cannot use module call in constants
+    // TODO: How to store the hash as constant?
     // const REQUEST_TYPE_HASH: vector<u8> = aptos_hash::keccak256(b"bytes32 Sign to request a swap on Meson (Testnet)");
     // const RELEASE_TYPE_HASH: vector<u8> = aptos_hash::keccak256(b"bytes32 Sign to release a swap on Meson (Testnet)address Recipient");
 
@@ -203,12 +210,20 @@ module Meson::MesonHelpers {
     ) {
         is_eth_addr(signer_eth_addr);
 
-        let msg_hash = aptos_hash::keccak256(encoded_swap);
-
-        // TODO: How to store the hash as constant?
-        let with_header = aptos_hash::keccak256(REQUEST_TYPE);
-        vector::append(&mut with_header, msg_hash);
-        let digest = aptos_hash::keccak256(with_header);
+        let non_typed = sign_non_typed(encoded_swap);
+        let signing_data: vector<u8>;
+        if (in_chain_from(encoded_swap) == x"00c3") {
+            signing_data = if (non_typed) TRON_SIGN_HEADER_33 else TRON_SIGN_HEADER;
+            vector::append(&mut signing_data, encoded_swap);
+        } else if (non_typed) {
+            signing_data = ETH_SIGN_HEADER;
+            vector::append(&mut signing_data, encoded_swap);
+        } else {
+            let msg_hash = aptos_hash::keccak256(encoded_swap);
+            signing_data = aptos_hash::keccak256(REQUEST_TYPE);
+            vector::append(&mut signing_data, msg_hash);
+        };
+        let digest = aptos_hash::keccak256(signing_data);
 
         let recovered = recover_eth_address(digest, signature);
         assert!(recovered == signer_eth_addr, EINVALID_SIGNATURE);
@@ -239,14 +254,24 @@ module Meson::MesonHelpers {
     ) {
         is_eth_addr(signer_eth_addr);
 
-        let msg = copy encoded_swap;
-        vector::append(&mut msg, recipient);
-        let msg_hash = aptos_hash::keccak256(msg);
-
-        // TODO: How to store the hash as constant?
-        let with_header = aptos_hash::keccak256(RELEASE_TYPE);
-        vector::append(&mut with_header, msg_hash);
-        let digest = aptos_hash::keccak256(with_header);
+        let non_typed = sign_non_typed(encoded_swap);
+        let signing_data: vector<u8>;
+        if (in_chain_from(encoded_swap) == x"00c3") {
+            signing_data = if (non_typed) TRON_SIGN_HEADER_53 else TRON_SIGN_HEADER;
+            vector::append(&mut signing_data, encoded_swap);
+            vector::append(&mut signing_data, recipient);
+        } else if (non_typed) {
+            signing_data = ETH_SIGN_HEADER_52;
+            vector::append(&mut signing_data, encoded_swap);
+            vector::append(&mut signing_data, recipient);
+        } else {
+            let msg = copy encoded_swap;
+            vector::append(&mut msg, recipient);
+            let msg_hash = aptos_hash::keccak256(msg);
+            signing_data = aptos_hash::keccak256(RELEASE_TYPE);
+            vector::append(&mut signing_data, msg_hash);
+        };
+        let digest = aptos_hash::keccak256(signing_data);
 
         let recovered = recover_eth_address(digest, signature);
         assert!(recovered == signer_eth_addr, EINVALID_SIGNATURE);
