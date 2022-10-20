@@ -54,10 +54,9 @@ module Meson::MesonSwap {
 
         MesonHelpers::check_request_signature(encoded_swap, signature, initiator);
 
-        MesonStates::add_posted_swap(encoded_swap, pool_index, initiator, signer::address_of(account));
-        
-        let coins = coin::withdraw<CoinType>(account, amount);
         vector::push_back(&mut encoded_swap, 0xff); // so it cannot be identical to a swap_id
+        MesonStates::add_posted_swap(encoded_swap, pool_index, initiator, signer::address_of(account));
+        let coins = coin::withdraw<CoinType>(account, amount);
         MesonStates::coins_to_pending(encoded_swap, coins);
     }
 
@@ -67,9 +66,8 @@ module Meson::MesonSwap {
         let expire_ts = MesonHelpers::expire_ts_from(encoded_swap);
         assert!(expire_ts < timestamp::now_seconds(), ESWAP_CANNOT_CANCEL_BEFORE_EXPIRE);
 
-        let (_, _, from_address) = MesonStates::remove_posted_swap(encoded_swap);
-
         vector::push_back(&mut encoded_swap, 0xff); // so it cannot be identical to a swap_id
+        let (_, _, from_address) = MesonStates::remove_posted_swap(encoded_swap);
         let coins = MesonStates::coins_from_pending(encoded_swap);
         coin::deposit<CoinType>(from_address, coins);
     }
@@ -83,13 +81,15 @@ module Meson::MesonSwap {
         recipient: vector<u8>,
         deposit_to_pool: bool,
     ) {
-        let (pool_index, initiator, _) = MesonStates::remove_posted_swap(encoded_swap);
+        let posted_swap_key = copy encoded_swap;
+        vector::push_back(&mut posted_swap_key, 0xff); // so it cannot be identical to a swap_id
+
+        let (pool_index, initiator, _) = MesonStates::remove_posted_swap(posted_swap_key);
         assert!(pool_index != 0, EPOOL_INDEX_CANNOT_BE_ZERO);
 
         MesonHelpers::check_release_signature(encoded_swap, recipient, signature, initiator);
 
-        vector::push_back(&mut encoded_swap, 0xff); // so it cannot be identical to a swap_id
-        let coins = MesonStates::coins_from_pending(encoded_swap);
+        let coins = MesonStates::coins_from_pending(posted_swap_key);
         if (deposit_to_pool) {
             MesonStates::coins_to_pool<CoinType>(pool_index, coins);
         } else {
