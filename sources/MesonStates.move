@@ -1,7 +1,7 @@
 module Meson::MesonStates {
     use std::signer;
     use std::table;
-    use aptos_std::type_info;
+    use std::type_info;
     use aptos_framework::coin;
     use aptos_framework::coin::{Coin};
 
@@ -52,9 +52,9 @@ module Meson::MesonStates {
         recipient: address,
     }
 
-    public entry fun initialize(deployer: &signer, premium_manager: address) {
-        let deployerAddress = signer::address_of(deployer);
-        assert!(deployerAddress == DEPLOYER, ENOT_DEPLOYER);
+    fun init_module(sender: &signer) {
+        let sender_addr = signer::address_of(sender);
+        assert!(sender_addr == DEPLOYER, ENOT_DEPLOYER);
 
         let store = GeneralStore {
             supported_coins: table::new<u8, type_info::TypeInfo>(),
@@ -63,18 +63,18 @@ module Meson::MesonStates {
             posted_swaps: table::new<vector<u8>, PostedSwap>(),
             locked_swaps: table::new<vector<u8>, LockedSwap>(),
         };
-        // pool_index = 0 is manager
-        table::add(&mut store.pool_owners, 0, premium_manager);
-        move_to<GeneralStore>(deployer, store);
+        // pool_index = 0 is premium_manager
+        table::add(&mut store.pool_owners, 0, sender_addr);
+        move_to<GeneralStore>(sender, store);
     }
 
     // Named consistently with solidity contracts
     public entry fun addSupportToken<CoinType>(
-        signer_account: &signer,
+        sender: &signer,
         coin_index: u8,
     ) acquires GeneralStore {
-        let signerAddress = signer::address_of(signer_account);
-        assert!(signerAddress == DEPLOYER, ENOT_DEPLOYER);
+        let sender_addr = signer::address_of(sender);
+        assert!(sender_addr == DEPLOYER, ENOT_DEPLOYER);
 
         let store = borrow_global_mut<GeneralStore>(DEPLOYER);
         let supported_coins = &mut store.supported_coins;
@@ -85,7 +85,7 @@ module Meson::MesonStates {
             in_pool_coins: table::new<u64, Coin<CoinType>>(),
             pending_coins: table::new<vector<u8>, Coin<CoinType>>(),
         };
-        move_to<StoreForCoin<CoinType>>(signer_account, coin_store);
+        move_to<StoreForCoin<CoinType>>(sender, coin_store);
     }
 
     public(friend) fun coin_type_for_index(coin_index: u8): type_info::TypeInfo acquires GeneralStore {

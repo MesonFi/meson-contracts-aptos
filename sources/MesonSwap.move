@@ -33,7 +33,7 @@ module Meson::MesonSwap {
     ///   in_chain: The initial chain of a cross-chain swap (given by the last 2 bytes of SLIP-44);
     ///   in_coin: Also named `out_token` for EVM chains. The index of the coin on the initial chain.
     public entry fun postSwap<CoinType>(
-        account: &signer,
+        sender: &signer,
         encoded_swap: vector<u8>,
         signature: vector<u8>, // must be signed by `initiator`
         initiator: vector<u8>, // an eth address of (20 bytes), the signer to sign for release
@@ -55,14 +55,14 @@ module Meson::MesonSwap {
         MesonHelpers::check_request_signature(encoded_swap, signature, initiator);
 
         vector::push_back(&mut encoded_swap, 0xff); // so it cannot be identical to a swap_id
-        MesonStates::add_posted_swap(encoded_swap, pool_index, initiator, signer::address_of(account));
-        let coins = coin::withdraw<CoinType>(account, amount);
+        MesonStates::add_posted_swap(encoded_swap, pool_index, initiator, signer::address_of(sender));
+        let coins = coin::withdraw<CoinType>(sender, amount);
         MesonStates::coins_to_pending(encoded_swap, coins);
     }
 
 
     // Named consistently with solidity contracts
-    public entry fun cancelSwap<CoinType>(_account: &signer, encoded_swap: vector<u8>) {
+    public entry fun cancelSwap<CoinType>(_sender: &signer, encoded_swap: vector<u8>) {
         let expire_ts = MesonHelpers::expire_ts_from(encoded_swap);
         assert!(expire_ts < timestamp::now_seconds(), ESWAP_CANNOT_CANCEL_BEFORE_EXPIRE);
 
@@ -75,7 +75,7 @@ module Meson::MesonSwap {
 
     // Named consistently with solidity contracts
     public entry fun executeSwap<CoinType>(
-        _account: &signer, // signer could be anyone
+        _sender: &signer, // signer could be anyone
         encoded_swap: vector<u8>,
         signature: vector<u8>,
         recipient: vector<u8>,

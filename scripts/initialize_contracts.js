@@ -31,14 +31,6 @@ async function initialize() {
     throw new Error('Address and private key in config.yaml do not match')
   }
 
-  const tx = await wallet.sendTransaction({
-    function: `${address}::MesonStates::initialize`,
-    type_arguments: [],
-    arguments: [address]
-  })
-  console.log(`initialize: ${tx.hash}`)
-  await tx.wait()
-
   const coins = testnets.find(n => n.id.startsWith('aptos')).tokens
   for (const coin of coins) {
     const tx = await wallet.sendTransaction({

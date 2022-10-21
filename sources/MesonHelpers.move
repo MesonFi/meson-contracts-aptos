@@ -6,8 +6,8 @@ module Meson::MesonHelpers {
     use std::vector;
     use std::option;
     use std::bcs;
-    use aptos_std::aptos_hash;
-    use aptos_std::secp256k1;
+    use std::aptos_hash;
+    use std::secp256k1;
 
     friend Meson::MesonSwap;
     friend Meson::MesonPools;
