@@ -73,7 +73,7 @@ async function swap() {
   const tx1 = await mesonClient.lock(signedRequest, userAddress)
   console.log(`Locked: \t${tx1.hash}`)
   await tx1.wait()
-  await logPoolBalance(lp, coins[0], meson)
+  await logPoolBalance(lp, coins[1], meson)
 
 
   const release = await swap.signForRelease(userAddress, true)
@@ -82,7 +82,7 @@ async function swap() {
   const tx2 = await mesonClient.release(signedRelease)
   console.log(`Released: \t${tx2.hash}`)
   await tx2.wait()
-  await logCoinBalance(user, coins[0])
+  await logCoinBalance(user, coins[1])
 
 
   const swapData2 = {
@@ -129,12 +129,13 @@ async function logWalletInfo(wallet, coins, meson) {
 async function logCoinBalance(wallet, coin) {
   const coinContract = adaptor.getContract(coin, ERC20.abi, wallet)
   const addr = await wallet.getAddress()
+  const decimals = await coinContract.decimals()
   const balance = await coinContract.balanceOf(addr)
-  console.log(`  Coin: ${utils.formatUnits(balance, 6)} ${coin.split('::')[1]}`)
+  console.log(`  Coin: ${utils.formatUnits(balance, decimals)} ${coin.split('::')[2]}`)
 }
 
 async function logPoolBalance(wallet, coin, meson) {
   const addr = await wallet.getAddress()
   const balance = await meson.poolTokenBalance(coin, addr)
-  console.log(`  Pool: ${utils.formatUnits(balance, 6)} ${coin.split('::')[1]}`)
+  console.log(`  Pool: ${utils.formatUnits(balance, 6)} ${coin.split('::')[2]}`)
 }

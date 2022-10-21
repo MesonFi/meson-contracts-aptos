@@ -38,7 +38,7 @@ async function register() {
       type_arguments: [coin],
       arguments: []
     })
-    console.log(`Register coin (${coin.split('::')[1]}): ${tx.hash}`)
+    console.log(`Register coin (${coin.split('::')[2]}): ${tx.hash}`)
     await tx.wait()
   }
 }
