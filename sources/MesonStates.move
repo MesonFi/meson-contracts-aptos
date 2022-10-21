@@ -69,6 +69,20 @@ module Meson::MesonStates {
     }
 
     // Named consistently with solidity contracts
+    public entry fun transferPremiumManager(
+        sender: &signer,
+        new_premium_manager: address,
+    ) acquires GeneralStore {
+        let store = borrow_global_mut<GeneralStore>(DEPLOYER);
+        let pool_owners = &mut store.pool_owners;
+        let old_premium_manager = table::remove(pool_owners, 0);
+
+        assert!(signer::address_of(sender) == old_premium_manager, EUNAUTHORIZED);
+
+        table::add(pool_owners, 0, new_premium_manager);
+    }
+
+    // Named consistently with solidity contracts
     public entry fun addSupportToken<CoinType>(
         sender: &signer,
         coin_index: u8,
