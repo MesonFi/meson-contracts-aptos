@@ -11,10 +11,11 @@ module Meson::MesonSwap {
     use Meson::MesonStates;
 
     const EPOOL_INDEX_CANNOT_BE_ZERO: u64 = 16;
+    const EPOOL_INDEX_MISMATCH: u64 = 17;
 
     const ESWAP_EXPIRE_TOO_EARLY: u64 = 42;
     const ESWAP_EXPIRE_TOO_LATE: u64 = 43;
-    const ESWAP_CANNOT_CANCEL_BEFORE_EXPIRE: u64 = 44;
+    const ESWAP_CANNOT_CANCEL_BEFORE_EXPIRE: u64 = 45;
 
 
     // Named consistently with solidity contracts
@@ -58,6 +59,18 @@ module Meson::MesonSwap {
         MesonStates::add_posted_swap(encoded_swap, pool_index, initiator, signer::address_of(sender));
         let coins = coin::withdraw<CoinType>(sender, amount);
         MesonStates::coins_to_pending(encoded_swap, coins);
+    }
+
+
+    // Named consistently with solidity contracts
+    public entry fun bondSwap<CoinType>(
+        sender: &signer,
+        encoded_swap: vector<u8>,
+        pool_index: u64,
+    ) {
+        let sender_addr = signer::address_of(sender);
+        assert!(pool_index == MesonStates::pool_index_of(sender_addr), EPOOL_INDEX_MISMATCH);
+        MesonStates::bond_posted_swap(encoded_swap, pool_index);
     }
 
 

@@ -24,6 +24,7 @@ module Meson::MesonStates {
     const ESWAP_NOT_EXISTS: u64 = 34;
     const ESWAP_ALREADY_EXISTS: u64 = 35;
     const ESWAP_COIN_MISMATCH: u64 = 38;
+    const ESWAP_BONDED_TO_OTHERS: u64 = 44;
 
     friend Meson::MesonSwap;
     friend Meson::MesonPools;
@@ -206,6 +207,17 @@ module Meson::MesonStates {
         assert!(!table::contains(posted_swaps, encoded_swap), ESWAP_ALREADY_EXISTS);
 
         table::add(posted_swaps, encoded_swap, PostedSwap { pool_index, initiator, from_address });
+    }
+
+    public(friend) fun bond_posted_swap(
+        encoded_swap: vector<u8>,
+        pool_index: u64,
+    ) acquires GeneralStore {
+        let store = borrow_global_mut<GeneralStore>(DEPLOYER);
+        let posted = table::borrow_mut(&mut store.posted_swaps, encoded_swap);
+        assert!(posted.from_address != @0x0, ESWAP_NOT_EXISTS);
+        assert!(posted.pool_index == 0, ESWAP_BONDED_TO_OTHERS);
+        posted.pool_index = pool_index;
     }
 
     public(friend) fun remove_posted_swap(
