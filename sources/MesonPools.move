@@ -10,6 +10,7 @@ module Meson::MesonPools {
     use Meson::MesonHelpers;
     use Meson::MesonStates;
 
+    const EPOOL_INDEX_CANNOT_BE_ZERO: u64 = 16;
     const EPOOL_INDEX_MISMATCH: u64 = 17;
    
     const ESWAP_EXIPRE_TS_IS_SOON: u64 = 46;
@@ -74,6 +75,7 @@ module Meson::MesonPools {
         assert!(until < MesonHelpers::expire_ts_from(encoded_swap) - 300, ESWAP_EXIPRE_TS_IS_SOON);
 
         let pool_index = MesonStates::pool_index_of(signer::address_of(sender));
+        assert!(pool_index != 0, EPOOL_INDEX_CANNOT_BE_ZERO);
 
         MesonHelpers::check_request_signature(encoded_swap, signature, initiator);
 
@@ -107,7 +109,7 @@ module Meson::MesonPools {
     // Step 3: Release
     // Named consistently with solidity contracts
     public entry fun release<CoinType>(
-        sender: &signer, // signer could be anyone
+        sender: &signer,
         encoded_swap: vector<u8>,
         signature: vector<u8>,
         initiator: vector<u8>,
@@ -116,8 +118,9 @@ module Meson::MesonPools {
 
         let waived = MesonHelpers::fee_waived(encoded_swap);
         if (waived) {
+            // for fee waived swap, signer needs to be the premium manager
             MesonStates::assert_is_premium_manager(signer::address_of(sender));
-        };
+        }; // otherwise, signer could be anyone
 
         let swap_id = MesonHelpers::get_swap_id(encoded_swap, initiator);
         let (_, until, recipient) = MesonStates::remove_locked_swap(swap_id);

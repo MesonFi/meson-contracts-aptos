@@ -1,9 +1,11 @@
 module Meson::MesonStates {
     use std::signer;
     use std::table;
+    use std::timestamp;
     use std::type_info;
     use aptos_framework::coin;
     use aptos_framework::coin::{Coin};
+    use Meson::MesonHelpers;
 
     const DEPLOYER: address = @Meson;
 
@@ -121,6 +123,7 @@ module Meson::MesonStates {
 
     public(friend) fun owner_of_pool(pool_index: u64): address acquires GeneralStore {
         let pool_owners = &borrow_global<GeneralStore>(DEPLOYER).pool_owners;
+        // TODO: do we need to check contains?
         assert!(table::contains(pool_owners, pool_index), EPOOL_NOT_REGISTERED);
         *table::borrow(pool_owners, pool_index)
     }
@@ -131,6 +134,7 @@ module Meson::MesonStates {
 
     public(friend) fun pool_index_of(authorized_addr: address): u64 acquires GeneralStore {
         let pool_of_authorized_addr = &borrow_global<GeneralStore>(DEPLOYER).pool_of_authorized_addr;
+        // TODO: do we need to check contains?
         assert!(table::contains(pool_of_authorized_addr, authorized_addr), EPOOL_ADDR_NOT_AUTHORIZED);
         *table::borrow(pool_of_authorized_addr, authorized_addr)
     }
@@ -209,12 +213,26 @@ module Meson::MesonStates {
     ): (u64, vector<u8>, address) acquires GeneralStore  {
         let store = borrow_global_mut<GeneralStore>(DEPLOYER);
         let posted_swaps = &mut store.posted_swaps;
+        // TODO: do we need to check contains?
         assert!(table::contains(posted_swaps, encoded_swap), ESWAP_NOT_EXISTS);
 
-        let PostedSwap { pool_index, initiator, from_address } = table::remove(posted_swaps, encoded_swap);
-        // TODO: need to set a value in `_postedSwaps` to prevent double spending
+        if (MesonHelpers::expire_ts_from(encoded_swap) < timestamp::now_seconds() + MesonHelpers::get_MIN_BOND_TIME_PERIOD()) {
+            // The swap cannot be posted again and therefore safe to remove it.
+            let PostedSwap { pool_index, initiator, from_address } = table::remove(posted_swaps, encoded_swap);
+            assert!(from_address != @0x0, ESWAP_NOT_EXISTS);
+            (pool_index, initiator, from_address)
+        } else {
+            // The same swap information can be posted again, so only reset
+            // part of the data to prevent double spending.
+            let posted = table::borrow_mut(posted_swaps, encoded_swap);
+            let pool_index = posted.pool_index;
+            let initiator = posted.initiator;
+            let from_address = posted.from_address;
+            assert!(from_address != @0x0, ESWAP_NOT_EXISTS);
 
-        (pool_index, initiator, from_address)
+            posted.from_address = @0x0;
+            (pool_index, initiator, from_address)
+        }
     }
 
     public(friend) fun add_locked_swap(
@@ -233,6 +251,7 @@ module Meson::MesonStates {
     public(friend) fun remove_locked_swap(swap_id: vector<u8>): (u64, u64, address) acquires GeneralStore  {
         let store = borrow_global_mut<GeneralStore>(DEPLOYER);
         let locked_swaps = &mut store.locked_swaps;
+        // TODO: do we need to check contains?
         assert!(table::contains(locked_swaps, swap_id), ESWAP_NOT_EXISTS);
 
         let LockedSwap { pool_index, until, recipient } = table::remove(locked_swaps, swap_id);

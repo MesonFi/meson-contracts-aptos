@@ -9,6 +9,7 @@ module Meson::MesonHelpers {
     use std::aptos_hash;
     use std::secp256k1;
 
+    friend Meson::MesonStates;
     friend Meson::MesonSwap;
     friend Meson::MesonPools;
 
@@ -28,7 +29,7 @@ module Meson::MesonHelpers {
 
     const MIN_BOND_TIME_PERIOD: u64 = 3600;     // 1 hour
     const MAX_BOND_TIME_PERIOD: u64 = 7200;     // 2 hours
-    const LOCK_TIME_PERIOD: u64 = 2400;         // 40 minutes
+    const LOCK_TIME_PERIOD: u64 = 1200;         // 20 minutes
 
     const ETH_SIGN_HEADER: vector<u8> = b"\x19Ethereum Signed Message:\n32";
     const ETH_SIGN_HEADER_52: vector<u8> = b"\x19Ethereum Signed Message:\n52";
@@ -36,13 +37,15 @@ module Meson::MesonHelpers {
     const TRON_SIGN_HEADER_33: vector<u8> = b"\x19TRON Signed Message:\n33\n";
     const TRON_SIGN_HEADER_53: vector<u8> = b"\x19TRON Signed Message:\n53\n";
 
+    // const REQUEST_TYPE: vector<u8> = b"bytes32 Sign to request a swap on Meson";
     const REQUEST_TYPE: vector<u8> = b"bytes32 Sign to request a swap on Meson (Testnet)";
+    // const RELEASE_TYPE: vector<u8> = b"bytes32 Sign to release a swap on Mesonaddress Recipient";
     const RELEASE_TYPE: vector<u8> = b"bytes32 Sign to release a swap on Meson (Testnet)address Recipient";
 
     // TODO: cannot use module call in constants
     // TODO: How to store the hash as constant?
-    // const REQUEST_TYPE_HASH: vector<u8> = aptos_hash::keccak256(b"bytes32 Sign to request a swap on Meson (Testnet)");
-    // const RELEASE_TYPE_HASH: vector<u8> = aptos_hash::keccak256(b"bytes32 Sign to release a swap on Meson (Testnet)address Recipient");
+    // const REQUEST_TYPE_HASH: vector<u8> = aptos_hash::keccak256(REQUEST_TYPE);
+    // const RELEASE_TYPE_HASH: vector<u8> = aptos_hash::keccak256(RELEASE_TYPE);
 
     public fun get_MIN_BOND_TIME_PERIOD(): u64 {
         MIN_BOND_TIME_PERIOD
@@ -146,18 +149,6 @@ module Meson::MesonHelpers {
         ]
     }
 
-    // fee for lp: `01|001dcd6500|c00000000000f677815c|[0000000000]00634dcb98027d0102ca21`
-    public(friend) fun fee_for_lp(encoded_swap: vector<u8>): u64 {
-        let fee = (*vector::borrow(&encoded_swap, 16) as u64);
-        let i = 17;
-        while (i < 21) {
-            let byte = *vector::borrow(&encoded_swap, i);
-            fee = (fee << 8) + (byte as u64);
-            i = i + 1;
-        };
-        fee
-    }
-
     public(friend) fun will_transfer_to_contract(encoded_swap: vector<u8>): bool {
         *vector::borrow(&encoded_swap, 6) & 0x80 == 0x80
     }
@@ -168,6 +159,18 @@ module Meson::MesonHelpers {
 
     public(friend) fun sign_non_typed(encoded_swap: vector<u8>): bool {
         *vector::borrow(&encoded_swap, 6) & 0x08 == 0x08
+    }
+
+    // fee for lp: `01|001dcd6500|c00000000000f677815c|[0000000000]00634dcb98027d0102ca21`
+    public(friend) fun fee_for_lp(encoded_swap: vector<u8>): u64 {
+        let fee = (*vector::borrow(&encoded_swap, 16) as u64);
+        let i = 17;
+        while (i < 21) {
+            let byte = *vector::borrow(&encoded_swap, i);
+            fee = (fee << 8) + (byte as u64);
+            i = i + 1;
+        };
+        fee
     }
 
     // expire timestamp: `01|001dcd6500|c00000000000f677815c|0000000000|[00634dcb98]|027d0102ca21`
