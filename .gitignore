@@ -3,4 +3,4 @@ build
 node_modules
 *.log
 
-.aptos/config.yaml
+.aptos/*.yaml

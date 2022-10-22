@@ -1,5 +1,5 @@
 [package]
-name = "Meson-Contracts-Move"
+name = "meson-contracts-aptos"
 version = "0.1.0"
 
 [dependencies]
