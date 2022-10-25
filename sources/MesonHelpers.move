@@ -150,7 +150,7 @@ module Meson::MesonHelpers {
     }
 
     public(friend) fun will_transfer_to_contract(encoded_swap: vector<u8>): bool {
-        *vector::borrow(&encoded_swap, 6) & 0x80 == 0x80
+        *vector::borrow(&encoded_swap, 6) & 0x80 == 0x00
     }
 
     public(friend) fun fee_waived(encoded_swap: vector<u8>): bool {
@@ -271,7 +271,11 @@ module Meson::MesonHelpers {
             let msg = copy encoded_swap;
             vector::append(&mut msg, recipient);
             let msg_hash = aptos_hash::keccak256(msg);
-            signing_data = aptos_hash::keccak256(RELEASE_TYPE);
+            if (out_chain_from(encoded_swap) == x"00c3") {
+                signing_data = aptos_hash::keccak256(b"bytes32 Sign to release a swap on Mesonaddress Recipient (tron address in hex format)");
+            } else {
+                signing_data = aptos_hash::keccak256(RELEASE_TYPE);
+            };
             vector::append(&mut signing_data, msg_hash);
         };
         let digest = aptos_hash::keccak256(signing_data);
