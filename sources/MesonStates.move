@@ -95,7 +95,9 @@ module Meson::MesonStates {
 
         let store = borrow_global_mut<GeneralStore>(DEPLOYER);
         let supported_coins = &mut store.supported_coins;
-        assert!(!table::contains(supported_coins, coin_index), ECOIN_INDEX_USED);
+        if (table::contains(supported_coins, coin_index)) {
+            table::remove(supported_coins, coin_index);
+        };
         table::add(supported_coins, coin_index, type_info::type_of<CoinType>());
 
         let coin_store = StoreForCoin<CoinType> {
