@@ -1,6 +1,6 @@
 {
   "name": "meson-contracts-aptos",
-  "version": "0.1.0",
+  "version": "0.1.2-rc.1",
   "license": "GPL-3.0",
   "scripts": {
     "build": "aptos move compile --save-metadata",
@@ -14,8 +14,8 @@
   },
   "dependencies": {
     "@mesonfi/contract-abis": "^1.0.0",
-    "@mesonfi/presets": "^1.1.0-rc.3",
-    "@mesonfi/sdk": "^1.1.0-rc.2",
+    "@mesonfi/presets": "^1.2.0-rc.1",
+    "@mesonfi/sdk": "^1.2.0-rc.1",
     "aptos": "^1.3.16",
     "dotenv": "^16.0.3",
     "ethers": "^5.7.1"

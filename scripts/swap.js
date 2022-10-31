@@ -43,11 +43,11 @@ async function swap() {
   const meson = adaptor.getContract(address, Meson.abi, lp)
   const { tokens: coins } = await meson.getSupportedTokens()
 
-  const lpAddress = await lp.getAddress()
+  const lpAddress = lp.address
   console.log(`LP address: ${lpAddress}`)
   await logWalletInfo(lp, coins, meson)
 
-  const userAddress = await user.getAddress()
+  const userAddress = user.address
   console.log(`User address: ${userAddress}`)
   await logWalletInfo(user, coins)
 
@@ -114,8 +114,7 @@ async function swap() {
 
 
 async function logWalletInfo(wallet, coins, meson) {
-  const addr = await wallet.getAddress()
-  console.log(`  Balance: ${utils.formatUnits(await wallet.getBalance(addr), 8)} APT`)
+  console.log(`  Balance: ${utils.formatUnits(await wallet.getBalance(wallet.address), 8)} APT`)
   for (let i = 0; i < coins.length; i++) {
     await logCoinBalance(wallet, coins[i])
   }
@@ -128,14 +127,12 @@ async function logWalletInfo(wallet, coins, meson) {
 
 async function logCoinBalance(wallet, coin) {
   const coinContract = adaptor.getContract(coin, ERC20.abi, wallet)
-  const addr = await wallet.getAddress()
   const decimals = await coinContract.decimals()
-  const balance = await coinContract.balanceOf(addr)
+  const balance = await coinContract.balanceOf(wallet.address)
   console.log(`  Coin: ${utils.formatUnits(balance, decimals)} ${coin.split('::')[2]}`)
 }
 
 async function logPoolBalance(wallet, coin, meson) {
-  const addr = await wallet.getAddress()
-  const balance = await meson.poolTokenBalance(coin, addr)
+  const balance = await meson.poolTokenBalance(coin, wallet.address)
   console.log(`  Pool: ${utils.formatUnits(balance, 6)} ${coin.split('::')[2]}`)
 }

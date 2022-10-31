@@ -3,6 +3,7 @@ const fs = require('fs')
 const path = require('path')
 const { AptosClient } = require('aptos')
 const { adaptor } = require('@mesonfi/sdk')
+const presets = require('@mesonfi/presets').default
 
 dotenv.config()
 
@@ -26,19 +27,15 @@ async function initialize() {
   const client = new AptosClient(APTOS_NODE_URL)
   const wallet = adaptor.getWallet(privateKey, client)
 
-  if (address !== await wallet.getAddress()) {
+  if (address !== wallet.address) {
     throw new Error('Address and private key in config.yaml do not match')
   }
 
-  const coins = [
-    { symbol: 'USDC', tokenIndex: 1 },
-    { symbol: 'USDT', tokenIndex: 2 },
-    { symbol: 'UCT', tokenIndex: 255 },
-  ]
+  const coins = presets.getNetwork('aptos').tokens
   for (const coin of coins) {
     const tx = await wallet.sendTransaction({
       function: `${address}::MesonStates::addSupportToken`,
-      type_arguments: [`${address}::Coins::${coin.symbol}`],
+      type_arguments: [coin.addr],
       arguments: [coin.tokenIndex]
     })
     console.log(`addSupportToken (${coin.symbol}): ${tx.hash}`)
@@ -50,7 +47,7 @@ async function initialize() {
   }
 
   const lp = adaptor.getWallet(APTOS_LP_PRIVATE_KEY, client)
-  const lpAddress = await lp.getAddress()
+  const lpAddress = lp.address
 
   const tx = await wallet.sendTransaction({
     function: `${address}::MesonStates::transferPremiumManager`,

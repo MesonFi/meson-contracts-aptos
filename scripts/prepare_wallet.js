@@ -25,7 +25,7 @@ async function prepare() {
     const faucetClient = new FaucetClient(APTOS_NODE_URL, APTOS_FAUCET_URL)
     await faucetClient.fundAccount(wallet.signer.address(), 1 * 1e8)
   
-    const bal = await wallet.getBalance(await wallet.getAddress())
+    const bal = await wallet.getBalance(wallet.address)
     console.log(`Balance: ${utils.formatUnits(bal, 8)} APT`)
   }
 
