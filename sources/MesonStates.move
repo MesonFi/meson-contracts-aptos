@@ -43,13 +43,13 @@ module Meson::MesonStates {
         pending_coins: table::Table<vector<u8>, Coin<CoinType>>,    // swap_id / [encoded_swap|ff] => Coins
     }
 
-    struct PostedSwap has store {
+    struct PostedSwap has store, drop {
         pool_index: u64,
         initiator: vector<u8>,
         from_address: address,
     }
 
-    struct LockedSwap has store {
+    struct LockedSwap has store, drop {
         pool_index: u64,
         until: u64,
         recipient: address,
@@ -265,10 +265,19 @@ module Meson::MesonStates {
     public(friend) fun remove_locked_swap(swap_id: vector<u8>): (u64, u64, address) acquires GeneralStore  {
         let store = borrow_global_mut<GeneralStore>(DEPLOYER);
         let locked_swaps = &mut store.locked_swaps;
-        // TODO: do we need to check contains?
-        assert!(table::contains(locked_swaps, swap_id), ESWAP_NOT_EXISTS);
 
-        let LockedSwap { pool_index, until, recipient } = table::remove(locked_swaps, swap_id);
+        let locked = table::borrow(locked_swaps, swap_id);
+        assert!(locked.until != 0, ESWAP_NOT_EXISTS);
+        let pool_index = locked.pool_index;
+        let until = locked.until;
+        let recipient = locked.recipient;
+
+        if (until > timestamp::now_seconds()) {
+            let locked_mut = table::borrow_mut(locked_swaps, swap_id);
+            locked_mut.until = 0;
+        } else {
+            table::remove(locked_swaps, swap_id);
+        };
 
         (pool_index, until, recipient)
     }
