@@ -57,7 +57,6 @@ module Meson::MesonPools {
     }
 
 
-    // Step 2: Lock
     // Named consistently with solidity contracts
     public entry fun lock<CoinType>(
         sender: &signer,
@@ -80,7 +79,7 @@ module Meson::MesonPools {
         MesonHelpers::check_request_signature(encoded_swap, signature, initiator);
 
         let swap_id = MesonHelpers::get_swap_id(encoded_swap, initiator);
-        let amount = MesonHelpers::amount_from(encoded_swap)- MesonHelpers::fee_for_lp(encoded_swap);
+        let amount = MesonHelpers::amount_from(encoded_swap) - MesonHelpers::fee_for_lp(encoded_swap);
 
         let coins = MesonStates::coins_from_pool<CoinType>(pool_index, amount);
         MesonStates::coins_to_pending<CoinType>(swap_id, coins);
@@ -106,7 +105,6 @@ module Meson::MesonPools {
     }
 
 
-    // Step 3: Release
     // Named consistently with solidity contracts
     public entry fun release<CoinType>(
         sender: &signer,

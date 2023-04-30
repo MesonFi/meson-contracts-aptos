@@ -1,8 +1,6 @@
 /// @title MesonHelpers
 /// @notice The class that provides helper functions for Meson protocol
 module Meson::MesonHelpers {
-    /* ---------------------------- References ---------------------------- */
-
     use std::vector;
     use std::option;
     use std::bcs;
@@ -41,6 +39,7 @@ module Meson::MesonHelpers {
     const REQUEST_TYPE: vector<u8> = b"bytes32 Sign to request a swap on Meson (Testnet)";
     // const RELEASE_TYPE: vector<u8> = b"bytes32 Sign to release a swap on Mesonaddress Recipient";
     const RELEASE_TYPE: vector<u8> = b"bytes32 Sign to release a swap on Meson (Testnet)address Recipient";
+    const RELEASE_TYPE_TRON: vector<u8> = b"bytes32 Sign to release a swap on Mesonaddress Recipient (tron address in hex format)";
 
     // TODO: cannot use module call in constants
     // TODO: How to store the hash as constant?
@@ -241,7 +240,7 @@ module Meson::MesonHelpers {
     }
 
     #[test]
-    #[expected_failure(abort_code=10)]
+    #[expected_failure(abort_code=EINVALID_SIGNATURE)]
     fun test_check_request_signature_error() {
         let encoded_swap = x"01001dcd6500c00000000000f677815c000000000000634dcb98027d0102ca21";
         let signature = x"b3184c257cf973069250eefd849a74d27250f8343cbda7615191149dd3c1b61d5d4e2b5ecc76a59baabf10a8d5d116edb95a5b2055b9b19f71524096975b29c3";
@@ -272,7 +271,7 @@ module Meson::MesonHelpers {
             vector::append(&mut msg, recipient);
             let msg_hash = aptos_hash::keccak256(msg);
             if (out_chain_from(encoded_swap) == x"00c3") {
-                signing_data = aptos_hash::keccak256(b"bytes32 Sign to release a swap on Mesonaddress Recipient (tron address in hex format)");
+                signing_data = aptos_hash::keccak256(RELEASE_TYPE_TRON);
             } else {
                 signing_data = aptos_hash::keccak256(RELEASE_TYPE);
             };
