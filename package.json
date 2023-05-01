@@ -3,12 +3,13 @@
   "version": "0.1.2-rc.1",
   "license": "GPL-3.0",
   "scripts": {
+    "wallet": "node ./scripts/prepare_wallet.js",
     "build": "aptos move compile --save-metadata",
-    "build:new": "node ./scripts/prepare_wallet.js && yarn build",
     "test": "aptos move test",
-    "predeploy": "yarn build:new",
+    "predeploy": "yarn build",
     "deploy": "aptos move publish --assume-yes",
     "postdeploy": "node ./scripts/initialize_contracts.js",
+    "update": "aptos move publish --assume-yes",
     "register": "node ./scripts/register_coins.js",
     "swap": "node ./scripts/swap.js"
   },
