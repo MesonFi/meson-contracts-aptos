@@ -2,7 +2,7 @@ const dotenv = require('dotenv')
 const fs = require('fs')
 const path = require('path')
 const { AptosClient } = require('aptos')
-const { adaptor } = require('@mesonfi/sdk')
+const { adaptors } = require('@mesonfi/sdk')
 const presets = require('@mesonfi/presets').default
 
 dotenv.config()
@@ -25,7 +25,7 @@ async function initialize() {
   const address = `0x${match[2]}`
 
   const client = new AptosClient(APTOS_NODE_URL)
-  const wallet = adaptor.getWallet(privateKey, client)
+  const wallet = adaptors.getWallet(privateKey, client)
 
   if (address !== wallet.address) {
     throw new Error('Address and private key in config.yaml do not match')
@@ -46,7 +46,7 @@ async function initialize() {
     return
   }
 
-  const lp = adaptor.getWallet(APTOS_LP_PRIVATE_KEY, client)
+  const lp = adaptors.getWallet(APTOS_LP_PRIVATE_KEY, client)
   const lpAddress = lp.address
 
   const tx = await wallet.sendTransaction({

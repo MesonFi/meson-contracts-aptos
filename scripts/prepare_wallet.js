@@ -3,7 +3,7 @@ const fs = require('fs')
 const path = require('path')
 const { AptosClient, FaucetClient } = require('aptos')
 const { utils } = require('ethers')
-const { adaptor } = require('@mesonfi/sdk')
+const { adaptors } = require('@mesonfi/sdk')
 
 dotenv.config()
 
@@ -16,7 +16,7 @@ prepare()
 
 async function prepare() {
   const client = new AptosClient(APTOS_NODE_URL)
-  const wallet = adaptor.getWallet(undefined, client)
+  const wallet = adaptors.getWallet(undefined, client)
 
   const key = wallet.signer.toPrivateKeyObject()
   console.log(`Address created: ${key.address}`)

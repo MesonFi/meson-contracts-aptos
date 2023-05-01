@@ -1,6 +1,6 @@
 {
   "name": "meson-contracts-aptos",
-  "version": "0.1.2-rc.1",
+  "version": "0.9.0-beta",
   "license": "GPL-3.0",
   "scripts": {
     "wallet": "node ./scripts/prepare_wallet.js",
@@ -14,9 +14,9 @@
     "swap": "node ./scripts/swap.js"
   },
   "dependencies": {
-    "@mesonfi/contract-abis": "^1.0.0",
-    "@mesonfi/presets": "^1.2.0-rc.1",
-    "@mesonfi/sdk": "^1.2.0-rc.1",
+    "@mesonfi/contract-abis": "^1.9.0",
+    "@mesonfi/presets": "^1.9.0-beta.4",
+    "@mesonfi/sdk": "^1.9.0-beta.4",
     "aptos": "^1.3.16",
     "dotenv": "^16.0.3",
     "ethers": "^5.7.1"

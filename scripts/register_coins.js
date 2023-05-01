@@ -2,7 +2,7 @@ const dotenv = require('dotenv')
 const fs = require('fs')
 const path = require('path')
 const { AptosClient } = require('aptos')
-const { adaptor } = require('@mesonfi/sdk')
+const { adaptors } = require('@mesonfi/sdk')
 const { Meson } = require('@mesonfi/contract-abis')
 
 dotenv.config()
@@ -27,8 +27,8 @@ async function register() {
   const address = `0x${match[1]}`
 
   const client = new AptosClient(APTOS_NODE_URL)
-  const wallet = adaptor.getWallet(APTOS_PRIVATE_KEY, client)
-  const meson = adaptor.getContract(address, Meson.abi, wallet)
+  const wallet = adaptors.getWallet(APTOS_PRIVATE_KEY, client)
+  const meson = adaptors.getContract(address, Meson.abi, wallet)
 
 
   const { tokens: coins } = await meson.getSupportedTokens() // Named consistently with solidity contracts

@@ -5,7 +5,7 @@ const { AptosClient } = require('aptos')
 const { Wallet, utils } = require('ethers')
 
 const {
-  adaptor,
+  adaptors,
   MesonClient,
   EthersWalletSwapSigner,
   SignedSwapRequest,
@@ -38,9 +38,9 @@ async function swap() {
   const address = `0x${match[1]}`
 
   const client = new AptosClient(APTOS_NODE_URL)
-  const user = adaptor.getWallet(APTOS_PRIVATE_KEY, client)
-  const lp = adaptor.getWallet(APTOS_LP_PRIVATE_KEY, client)
-  const meson = adaptor.getContract(address, Meson.abi, lp)
+  const user = adaptors.getWallet(APTOS_PRIVATE_KEY, client)
+  const lp = adaptors.getWallet(APTOS_LP_PRIVATE_KEY, client)
+  const meson = adaptors.getContract(address, Meson.abi, lp)
   const { tokens: coins } = await meson.getSupportedTokens()
 
   const lpAddress = lp.address
@@ -126,7 +126,7 @@ async function logWalletInfo(wallet, coins, meson) {
 }
 
 async function logCoinBalance(wallet, coin) {
-  const coinContract = adaptor.getContract(coin, ERC20.abi, wallet)
+  const coinContract = adaptors.getContract(coin, ERC20.abi, wallet)
   const decimals = await coinContract.decimals()
   const balance = await coinContract.balanceOf(wallet.address)
   console.log(`  Coin: ${utils.formatUnits(balance, decimals)} ${coin.split('::')[2]}`)
