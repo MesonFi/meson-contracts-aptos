@@ -56,6 +56,13 @@ module Meson::MesonPools {
         MesonStates::remove_authorized(pool_index, addr);
     }
 
+    // Named consistently with solidity contracts
+    public entry fun transferPoolOwner(sender: &signer, addr: address) {
+        let sender_addr = signer::address_of(sender);
+        let pool_index = MesonStates::pool_index_if_owner(sender_addr);
+        MesonStates::transfer_pool_owner(pool_index, addr);
+    }
+
 
     // Named consistently with solidity contracts
     public entry fun lock<CoinType>(

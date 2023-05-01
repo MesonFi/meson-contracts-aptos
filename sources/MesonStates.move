@@ -169,6 +169,14 @@ module Meson::MesonStates {
         assert!(pool_index == table::remove(&mut store.pool_of_authorized_addr, addr), EPOOL_ADDR_AUTHORIZED_TO_ANOTHER);
     }
 
+    public(friend) fun transfer_pool_owner(pool_index: u64, addr: address) acquires GeneralStore {
+        assert!(pool_index != 0, EPOOL_INDEX_CANNOT_BE_ZERO);
+        let store = borrow_global_mut<GeneralStore>(DEPLOYER);
+        assert!(table::contains(&store.pool_of_authorized_addr, addr), EPOOL_ADDR_NOT_AUTHORIZED);
+        assert!(pool_index == *table::borrow(&store.pool_of_authorized_addr, addr), EPOOL_ADDR_AUTHORIZED_TO_ANOTHER);
+        table::upsert(&mut store.pool_owners, pool_index, addr);
+    }
+
 
     public(friend) fun coins_to_pool<CoinType>(pool_index: u64, coins_to_add: Coin<CoinType>) acquires StoreForCoin {
         let store = borrow_global_mut<StoreForCoin<CoinType>>(DEPLOYER);
