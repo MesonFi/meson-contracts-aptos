@@ -1,44 +1,32 @@
 const dotenv = require('dotenv')
-const fs = require('fs')
-const path = require('path')
-const { AptosClient } = require('aptos')
 const { adaptors } = require('@mesonfi/sdk')
-const { Meson } = require('@mesonfi/contract-abis')
+const presets = require('@mesonfi/presets').default
 
 dotenv.config()
 
 const {
-  APTOS_NODE_URL,
-  APTOS_PRIVATE_KEY,
+  TESTNET_MODE,
 } = process.env
 
-register()
+const testnetMode = Boolean(TESTNET_MODE)
+const networkId = testnetMode ? 'aptos-testnet' : 'aptos'
+presets.useTestnet(testnetMode)
 
-async function register() {
-  if (!APTOS_PRIVATE_KEY) {
-    throw new Error('Please set APTOS_PRIVATE_KEY in .env')
-  }
+register(process.env.PRIVATE_KEY)
 
-  const configYaml = fs.readFileSync(path.join(__dirname, '../.aptos/config.yaml'))
-  const match = /account: (.*)\s/.exec(configYaml)
-  if (!match) {
-    throw new Error('Failed to parse config.yaml')
-  }
-  const address = `0x${match[1]}`
+async function register(privateKey) {
+  const network = presets.getNetwork(networkId)
+  const client = presets.createNetworkClient(networkId, [network.url])
+  const wallet = adaptors.getWallet(privateKey, client)
+  console.log(wallet.address)
 
-  const client = new AptosClient(APTOS_NODE_URL)
-  const wallet = adaptors.getWallet(APTOS_PRIVATE_KEY, client)
-  const meson = adaptors.getContract(address, Meson.abi, wallet)
-
-
-  const { tokens: coins } = await meson.getSupportedTokens() // Named consistently with solidity contracts
-  for (const coin of coins) {
+  for (const coin of network.tokens) {
+    console.log(`Registering ${coin.addr}...`)
     const tx = await wallet.sendTransaction({
       function: '0x1::managed_coin::register',
-      type_arguments: [coin],
+      type_arguments: [coin.addr],
       arguments: []
     })
-    console.log(`Register coin (${coin.split('::')[2]}): ${tx.hash}`)
     await tx.wait()
   }
 }

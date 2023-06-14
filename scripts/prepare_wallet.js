@@ -12,23 +12,22 @@ const {
   APTOS_FAUCET_URL,
 } = process.env
 
-prepare()
+prepare(process.env.PRIVATE_KEY)
 
-async function prepare() {
+async function prepare(privateKey) {
   const client = new AptosClient(APTOS_NODE_URL)
-  const wallet = adaptors.getWallet(undefined, client)
+  const wallet = adaptors.getWallet(privateKey, client)
 
-  const key = wallet.signer.toPrivateKeyObject()
+  const key = wallet.account.toPrivateKeyObject()
   console.log(`Address created: ${key.address}`)
 
   if (APTOS_FAUCET_URL) {
     const faucetClient = new FaucetClient(APTOS_NODE_URL, APTOS_FAUCET_URL)
-    await faucetClient.fundAccount(wallet.signer.address(), 1 * 1e8)
-  
-    const bal = await wallet.getBalance(wallet.address)
-    console.log(`Balance: ${utils.formatUnits(bal, 8)} APT`)
+    await faucetClient.fundAccount(wallet.address, 1 * 1e8)
   }
 
+  const balance = await wallet.getBalance(wallet.address)
+  console.log(`Balance: ${utils.formatUnits(balance, 8)} APT`)
 
   const configYaml = `---
 profiles:

@@ -368,27 +368,27 @@
   resolved "https://npm.pkg.github.com/download/@MesonFi/contract-types/1.9.0/4dd68332682977a372947c500c6a5453135c8de5#4dd68332682977a372947c500c6a5453135c8de5"
   integrity sha512-P6o/n7PTwjy2fiF4vwsPUOxsIBuMwr4Y/60oYp+ge67CeZzBttCa2MfyA7xa/IynDA789umFMBvdGjsdsG2qOg==
 
-"@mesonfi/presets@^1.9.0-beta.4":
-  version "1.9.0-beta.4"
-  resolved "https://npm.pkg.github.com/download/@MesonFi/presets/1.9.0-beta.4/3697c4b2e13dcce49c880ff49f03b36eda7a4edf#3697c4b2e13dcce49c880ff49f03b36eda7a4edf"
-  integrity sha512-X8VLm53XKnpawLM33ttYGqJdn+CGduc4iqig88w74JxLhP1lBljteM1ZBD2hIcsbvDjEBmmjwa9m/GLcWzlyjw==
+"@mesonfi/presets@^1.9.0-rc.5":
+  version "1.9.0-rc.5"
+  resolved "https://npm.pkg.github.com/download/@MesonFi/presets/1.9.0-rc.5/8fea1080b5482820fba38ff9a8de1b7619a7b02e#8fea1080b5482820fba38ff9a8de1b7619a7b02e"
+  integrity sha512-imh+mznnAOS4kvazBwXg8rrpCoZ6rfS4qrxLNOGRwWA8ML+krBuwnTyw85qrttl9HKWz2Pbw0aB/w2oJNwzDxw==
   dependencies:
     "@mesonfi/contract-abis" "^1.9.0"
-    "@mesonfi/sdk" "^1.9.0-beta.4"
-    "@mysten/sui.js" "^0.32.1"
+    "@mesonfi/sdk" "^1.9.0-rc.5"
+    "@mysten/sui.js" "^0.33.0"
     aptos "^1.3.16"
     ethers "^5.7.1"
     lodash "^4.17.21"
     tronweb "^4.3.0"
 
-"@mesonfi/sdk@^1.9.0-beta.4":
-  version "1.9.0-beta.4"
-  resolved "https://npm.pkg.github.com/download/@MesonFi/sdk/1.9.0-beta.4/b3ed68c6e658418a88239150e0426a41dc11cfb5#b3ed68c6e658418a88239150e0426a41dc11cfb5"
-  integrity sha512-TRvKNvUK2vPlU5Qv9UiUB5raWB8tDl4wO52rNEZkzTyOoABk4JYyuP7PrpZGtwr5j8ZwRIAMPNRyWnDjqjftFQ==
+"@mesonfi/sdk@^1.9.0-rc.5":
+  version "1.9.0-rc.5"
+  resolved "https://npm.pkg.github.com/download/@MesonFi/sdk/1.9.0-rc.5/81a4664a73dafa70ce4f1802d7c4d31f58409bae#81a4664a73dafa70ce4f1802d7c4d31f58409bae"
+  integrity sha512-+ETCI++Z2gBqj90YTW/J0JWTs6L3TYLBRGssHmckA8kmqd86z2w9kELWQNsRrGA1tSFrb2tr4boeHVIoPya+Nw==
   dependencies:
     "@mesonfi/contract-abis" "^1.9.0"
     "@mesonfi/contract-types" "^1.9.0"
-    "@mysten/sui.js" "^0.32.1"
+    "@mysten/sui.js" "^0.33.0"
     aptos "^1.3.16"
     cross-fetch "^3.1.5"
     ethers "^5.7.1"
@@ -403,10 +403,10 @@
   dependencies:
     bs58 "^5.0.0"
 
-"@mysten/sui.js@^0.32.1":
-  version "0.32.2"
-  resolved "https://registry.yarnpkg.com/@mysten/sui.js/-/sui.js-0.32.2.tgz#dff953a336c787465af181d8158f34a65700a74f"
-  integrity sha512-/Hm4xkGolJhqj8FvQr7QSHDTlxIvL52mtbOao9f75YjrBh7y1Uh9kbJSY7xiTF1NY9sv6p5hUVlYRJuM0Hvn9A==
+"@mysten/sui.js@^0.33.0":
+  version "0.33.0"
+  resolved "https://registry.yarnpkg.com/@mysten/sui.js/-/sui.js-0.33.0.tgz#3ed0831d733fffb65430c3949fd00eaa7510e462"
+  integrity sha512-vPswzowPoxYmexN+jKrSQ5uKWv8AoX30c11t8VAODCCXeCziq7Y27TEcYFsQmWJBIMU/hYw75kGj9oorJyXyKw==
   dependencies:
     "@mysten/bcs" "0.7.1"
     "@noble/curves" "^1.0.0"

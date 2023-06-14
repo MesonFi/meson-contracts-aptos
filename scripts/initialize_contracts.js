@@ -1,94 +1,96 @@
 const dotenv = require('dotenv')
-const fs = require('fs')
-const path = require('path')
-const { AptosClient } = require('aptos')
+const { utils } = require('ethers')
 const { adaptors } = require('@mesonfi/sdk')
 const presets = require('@mesonfi/presets').default
+const { Meson } = require('@mesonfi/contract-abis')
 
 dotenv.config()
 
 const {
-  APTOS_NODE_URL,
-  APTOS_LP_PRIVATE_KEY,
+  TESTNET_MODE,
+  PRIVATE_KEY,
+  LP_PRIVATE_KEY,
   AMOUNT_TO_DEPOSIT,
 } = process.env
+
+const testnetMode = Boolean(TESTNET_MODE)
+const networkId = testnetMode ? 'aptos-testnet' : 'aptos'
+presets.useTestnet(testnetMode)
 
 initialize()
 
 async function initialize() {
-  const configYaml = fs.readFileSync(path.join(__dirname, '../.aptos/config.yaml'))
-  const match = /private_key: "(.*)"[\s\S]*account: (.*)\s/.exec(configYaml)
-  if (!match) {
-    throw new Error('Failed to parse config.yaml')
-  }
-  const privateKey = match[1]
-  const address = `0x${match[2]}`
+  const network = presets.getNetwork(networkId)
+  const client = presets.createNetworkClient(networkId, [network.url])
+  const wallet = adaptors.getWallet(PRIVATE_KEY, client)
 
-  const client = new AptosClient(APTOS_NODE_URL)
-  const wallet = adaptors.getWallet(privateKey, client)
+  const mesonAddress = wallet.address
+  console.log('Deployed to:', mesonAddress)
+  let mesonInstance = adaptors.getContract(mesonAddress, Meson.abi, wallet)
 
-  if (address !== wallet.address) {
-    throw new Error('Address and private key in config.yaml do not match')
-  }
+  const coins = testnetMode
+    ? [{ symbol: 'USDC', tokenIndex: 1 }, { symbol: 'USDT', tokenIndex: 2 }]
+    : network.tokens
 
-  const coins = presets.getNetwork('aptos').tokens
   for (const coin of coins) {
-    const tx = await wallet.sendTransaction({
-      function: `${address}::MesonStates::addSupportToken`,
-      type_arguments: [coin.addr],
-      arguments: [coin.tokenIndex]
-    })
-    console.log(`addSupportToken (${coin.symbol}): ${tx.hash}`)
+    if (testnetMode) {
+      coin.addr = `${mesonAddress}::Coins::${coin.symbol}`
+    }
+    console.log(`addSupportToken (${coin.symbol})`)
+    const tx = await mesonInstance.addSupportToken(coin.addr, coin.tokenIndex)
     await tx.wait()
   }
 
-  if (!APTOS_LP_PRIVATE_KEY) {
+  if (!LP_PRIVATE_KEY) {
     return
   }
 
-  const lp = adaptors.getWallet(APTOS_LP_PRIVATE_KEY, client)
-  const lpAddress = lp.address
+  const lp = adaptors.getWallet(LP_PRIVATE_KEY, client)
 
+  console.log(`transferPremiumManager: ${lp.address}`)
   const tx = await wallet.sendTransaction({
-    function: `${address}::MesonStates::transferPremiumManager`,
+    function: `${mesonAddress}::MesonStates::transferPremiumManager`,
     type_arguments: [],
-    arguments: [lpAddress],
+    arguments: [lp.address],
   })
-  console.log(`transferPremiumManager: ${tx.hash}`)
   await tx.wait()
+
+  mesonInstance = mesonInstance.connect(lp)
 
   if (!AMOUNT_TO_DEPOSIT) {
     return
   }
 
-  let registered = false
   for (const coin of coins) {
-    const coinType = `${address}::Coins::${coin.symbol}`
+    const value = utils.parseUnits(AMOUNT_TO_DEPOSIT, 6)
 
+    console.log(`Registering ${coin.symbol}...`)
     const tx1 = await lp.sendTransaction({
       function: `0x1::managed_coin::register`,
-      type_arguments: [coinType],
+      type_arguments: [coin.addr],
       arguments: []
     })
-    console.log(`register (${coin.symbol}): ${tx1.hash}`)
     await tx1.wait()
 
+    console.log(`Minting ${AMOUNT_TO_DEPOSIT} ${coin.symbol}...`)
     const tx2 = await wallet.sendTransaction({
       function: `0x1::managed_coin::mint`,
-      type_arguments: [coinType],
-      arguments: [lpAddress, 1_000000_000000]
+      type_arguments: [coin.addr],
+      arguments: [lp.address, value.toNumber()]
     })
-    console.log(`mint (${coin.symbol}): ${tx2.hash}`)
     await tx2.wait()
 
-    const func = registered ? 'deposit' : 'depositAndRegister'
-    const tx3 = await lp.sendTransaction({
-      function: `${address}::MesonPools::${func}`,
-      type_arguments: [coinType],
-      arguments: [BigInt(AMOUNT_TO_DEPOSIT), 1],
-    })
-    console.log(`${func} (${coin.symbol}): ${tx3.hash}`)
-    await tx3.wait()
-    registered = true
+    console.log(`Depositing ${AMOUNT_TO_DEPOSIT} ${coin.symbol}...`)
+    const poolIndex = await mesonInstance.poolOfAuthorizedAddr(lp.address)
+    const needRegister = poolIndex == 0
+    const poolTokenIndex = coin.tokenIndex * 2**40 + (needRegister ? 1 : poolIndex)
+
+    let tx
+    if (needRegister) {
+      tx = await mesonInstance.depositAndRegister(value, poolTokenIndex)
+    } else {
+      tx = await mesonInstance.deposit(value, poolTokenIndex)
+    }
+    await tx.wait()
   }
 }
