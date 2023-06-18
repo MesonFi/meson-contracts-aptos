@@ -24,6 +24,8 @@ module Meson::MesonHelpers {
     const MESON_PROTOCOL_VERSION: u8 = 1;
     const SHORT_COIN_TYPE: vector<u8> = x"027d"; // See https://github.com/satoshilabs/slips/blob/master/slip-0044.md
     const MAX_SWAP_AMOUNT: u64 = 100000000000; // 100,000.000000 = 100k
+    const SERVICE_FEE_RATE: u64 = 5;           // service fee = 5 / 10000 = 0.05%
+    const SERVICE_FEE_MINIMUM: u64 = 500000;   // min $0.5
 
     const MIN_BOND_TIME_PERIOD: u64 = 3600;     // 1 hour
     const MAX_BOND_TIME_PERIOD: u64 = 7200;     // 2 hours
@@ -114,8 +116,12 @@ module Meson::MesonHelpers {
 
     // service fee: Default to 0.1% of amount
     public(friend) fun service_fee(encoded_swap: vector<u8>): u64 {
-        let amount = amount_from(encoded_swap);
-        amount * 10 / 10000
+        let feeByRate = amount_from(encoded_swap) * SERVICE_FEE_RATE / 10000;
+        if (feeByRate > SERVICE_FEE_MINIMUM) {
+            feeByRate
+        } else {
+            SERVICE_FEE_MINIMUM
+        }
     }
 
     // salt & other infromation: `01|001dcd6500|[c00000000000f677815c]000000000000634dcb98027d0102ca21`
