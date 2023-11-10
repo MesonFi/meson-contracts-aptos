@@ -42,7 +42,7 @@ async function swap() {
     signTypedData: async () => '0x',
   }
   const swapSigner = new NonEcdsaRemoteSwapSigner(signer)
-  mesonClient.setSwapSigner(swapSigner)
+  mesonClient.swapSigner = swapSigner
 
 
   const swapData = {
@@ -68,7 +68,7 @@ async function swap() {
   console.log('postSwap', postSwapTx.hash)
   await postSwapTx.wait(1)
 
-  mesonClient.switchWallet(lp)
+  mesonClient.wallet = lp
 
   // lock
   const lockTx = await mesonClient.lock(signedRequest, swapData.recipient)
