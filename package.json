@@ -8,7 +8,7 @@
     "test": "aptos move test",
     "predeploy": "yarn build",
     "deploy": "aptos move publish --assume-yes",
-    "postdeploy": "node ./scripts/initialize_contracts.js",
+    "postdeploy": "node ./scripts/initialize.js",
     "update": "aptos move publish --assume-yes",
     "register": "node ./scripts/register_coins.js",
     "swap": "node ./scripts/swap.js"
